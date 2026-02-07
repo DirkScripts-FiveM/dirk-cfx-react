@@ -37,6 +37,13 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     game,
   } = useSettings();
 
+  console.log("DirkProvider rendered with settings:", {
+    primaryColor,
+    primaryShade,
+    customTheme,
+    game,
+    overideResourceName,
+  });
   useEffect(() => {
     useSettings.setState({
       overideResourceName,
