@@ -28,9 +28,9 @@ export async function fetchNui<T = unknown>(
 
   const overrideResourceName = useSettings.getState().overideResourceName;
 
-  const resourceName = overrideResourceName ?? (window as any).GetParentResourceName
+  const resourceName = (window as any).GetParentResourceName
     ? (window as any).GetParentResourceName()
-    : "nui-frame-app";
+    : overrideResourceName ? overrideResourceName : "dirk-cfx-react";
     console.log('Final resource name for fetchNui:', resourceName);
 
   const resp = await fetch(`https://${resourceName}/${eventName}`, options);

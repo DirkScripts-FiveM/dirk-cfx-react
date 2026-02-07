@@ -15,7 +15,7 @@ import { fas } from "@fortawesome/free-solid-svg-icons";
 library.add(fas, far, fab);
 
 import { MantineProvider, BackgroundImage, MantineColorShade } from "@mantine/core";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useLayoutEffect } from "react";
 import theme from "@/theme";
 
 import { useSettings } from "@/utils/useSettings";
@@ -44,7 +44,8 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     game,
     overideResourceName,
   });
-  useEffect(() => {
+  
+  useLayoutEffect(() => {
     useSettings.setState({
       overideResourceName,
     });
