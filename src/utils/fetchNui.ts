@@ -27,10 +27,11 @@ export async function fetchNui<T = unknown>(
   }
 
   const overrideResourceName = useSettings.getState().overideResourceName;
-  console.log(`[fetchNui] Fetching event "${eventName}" with data:`, data, "and options:", options, "using resource name:", overrideResourceName); 
+
   const resourceName = overrideResourceName ?? (window as any).GetParentResourceName
     ? (window as any).GetParentResourceName()
     : "nui-frame-app";
+    console.log('Final resource name for fetchNui:', resourceName);
 
   const resp = await fetch(`https://${resourceName}/${eventName}`, options);
   return await resp.json();
