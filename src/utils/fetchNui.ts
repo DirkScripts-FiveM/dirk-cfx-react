@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { isEnvBrowser } from "./misc";
+import { useSettings } from "./useSettings";
 
 /**
  * Simple wrapper around fetch API tailored for CEF/NUI use.
@@ -25,7 +26,9 @@ export async function fetchNui<T = unknown>(
     return {} as T;
   }
 
-  const resourceName = (window as any).GetParentResourceName
+  const overrideResourceName = useSettings.getState().overideResourceName;
+  
+  const resourceName = overrideResourceName ?? (window as any).GetParentResourceName
     ? (window as any).GetParentResourceName()
     : "nui-frame-app";
 

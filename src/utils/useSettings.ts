@@ -8,6 +8,7 @@ export type SettingsState = {
   primaryShade: number;
   itemImgPath: string;
   customTheme?: MantineColorsTuple;
+  overideResourceName?: string;
 };
 
 export const useSettings = create<SettingsState>(() => ({

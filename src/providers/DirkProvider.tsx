@@ -25,16 +25,25 @@ import { isEnvBrowser } from "@/utils";
 
 export type DirkProviderProps = {
   children: React.ReactNode;
+  overideResourceName?: string;
   themeOverride?: any;
 };
 
-export function DirkProvider({ children, themeOverride }: DirkProviderProps) {
+export function DirkProvider({ children, overideResourceName, themeOverride }: DirkProviderProps) {
   const {
     primaryColor,
     primaryShade,
     customTheme,
     game,
   } = useSettings();
+
+  useEffect(() => {
+    useSettings.setState({
+      overideResourceName,
+    });
+  }, [overideResourceName]);
+
+  
 
   // 🚫 do not render until state is stable
 
@@ -53,7 +62,6 @@ export function DirkProvider({ children, themeOverride }: DirkProviderProps) {
       game === "rdr3"
         ? '"Red Dead", sans-serif'
         : '"Akrobat Regular", sans-serif';
-    console.log(`%cNew Font Applied: ${document.body.style.fontFamily}`, "font-family: " + document.body.style.fontFamily); 
   }, [game]);
 
   const content = isEnvBrowser() ? (
