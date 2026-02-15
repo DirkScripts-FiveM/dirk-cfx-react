@@ -30,9 +30,9 @@ export const useSettings = create<SettingsState>(() => ({
   ],
 }));
 
-// registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
-//   console.log('Fetched settings:', data);
-//     useSettings.setState({
-//       ...data,
-//     });
-// })
+registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
+  console.log('Fetched settings:', data);
+    useSettings.setState({
+      ...data,
+    });
+})
