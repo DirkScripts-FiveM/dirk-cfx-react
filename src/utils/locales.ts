@@ -42,4 +42,4 @@ export const locale = localeStore.getState().locale;
 
 registerInitialFetch<LocalesProps>('GET_LOCALES', undefined).then((data) => {
   localeStore.setState({ locales: data });
-});
+})

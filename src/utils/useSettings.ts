@@ -30,12 +30,9 @@ export const useSettings = create<SettingsState>(() => ({
   ],
 }));
 
-
-registerInitialFetch<Partial<SettingsState>>("GET_SETTINGS")
-  .then((data) => {
+registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
+  console.log('Fetched settings:', data);
     useSettings.setState({
       ...data,
     });
-  }).catch((err) => {
-    console.error("Failed to fetch initial settings within dirk-cfx-react:", err);
-  });
+})
