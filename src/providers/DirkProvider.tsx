@@ -37,11 +37,11 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     game,
   } = useSettings();
 
-  useLayoutEffect(() => {
-    useSettings.setState({
-      overideResourceName,
-    });
-  }, [overideResourceName]);
+  // useLayoutEffect(() => {
+  //   useSettings.setState({
+  //     overideResourceName,
+  //   });
+  // }, [overideResourceName]);
 
   // 🚫 do not render until state is stable
 
