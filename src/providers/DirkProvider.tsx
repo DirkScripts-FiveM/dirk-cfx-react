@@ -18,10 +18,10 @@ import { MantineProvider, BackgroundImage, MantineColorShade } from "@mantine/co
 import { useMemo, useEffect, useLayoutEffect } from "react";
 import theme from "@/theme";
 
-import { useSettings } from "@/utils/useSettings";
+import { SettingsState, useSettings } from "@/utils/useSettings";
 import { mergeMantineThemeSafe } from "@/utils/mergeMantineTheme";
 import { DirkErrorBoundary } from "./DirkErrorBoundary";
-import { isEnvBrowser } from "@/utils";
+import { fetchNui, isEnvBrowser } from "@/utils";
 
 export type DirkProviderProps = {
   children: React.ReactNode;
@@ -37,11 +37,21 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     game,
   } = useSettings();
 
-  // useLayoutEffect(() => {
-  //   useSettings.setState({
-  //     overideResourceName,
-  //   });
-  // }, [overideResourceName]);
+  useLayoutEffect(() => {
+    useSettings.setState({
+      overideResourceName,
+    });
+  }, [overideResourceName]);
+
+  useEffect(() => {
+    fetchNui<Partial<SettingsState>>('GET_SETTINGS').then((data) => {
+      useSettings.setState({
+        ...data,
+      });
+    }).catch((err) => {
+      console.error("Failed to fetch initial settings within dirk-cfx-react:", err);
+    });
+  }, []);
 
   // 🚫 do not render until state is stable
 
