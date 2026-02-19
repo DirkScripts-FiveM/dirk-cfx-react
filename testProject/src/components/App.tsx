@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import React from "react";
 import { useFastTravel } from "./useFastTravel";
 import TestButton from "./TestButton";
+import { Notification } from "@mantine/core";
 
 
 export const {skill: drugSkill, useSkill: useDrugSkill} = createSkill({
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   const { nextLevelXP } = useDrugSkill(0);
   return (
     <DirkProvider>
+      <Notification/>
       <TornEdgeSVGFilter />
       <ModalProvider>
         <AnimatePresence>

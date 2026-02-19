@@ -4,6 +4,7 @@ import { MantineColorsTuple } from "@mantine/core";
 
 export type SettingsState = {
   game: "fivem" | "rdr3";
+  currency: string;
   primaryColor: string;
   primaryShade: number;
   itemImgPath: string;
@@ -12,6 +13,7 @@ export type SettingsState = {
 };
 
 export const useSettings = create<SettingsState>(() => ({
+  currency: "$",
   game: "fivem",
   primaryColor: "dirk",
   primaryShade: 9,
@@ -30,13 +32,13 @@ export const useSettings = create<SettingsState>(() => ({
   ],
 }));
 
-// registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
-//   console.log('Fetched settings:', data);
-//     if (!data) {
-//       console.warn('No settings data received from GET_SETTINGS fetch.');
-//       return;
-//     }
-//     useSettings.setState({
-//       ...data,
-//     });
-// })
+registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
+  console.log('Fetched settings:', data);
+    if (!data) {
+      console.warn('No settings data received from GET_SETTINGS fetch.');
+      return;
+    }
+    useSettings.setState({
+      ...data,
+    });
+})
