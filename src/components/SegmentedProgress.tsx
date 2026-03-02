@@ -77,7 +77,7 @@ export function SegmentedProgress(props: ProgressProps) {
             key={index}
             variants={itemVariants}
             style={{
-              width: `${100 / props.segments}%`, // Ensures equal width distribution
+              flex: 1,
               height: "100%",
               background: isFilled
                 ? "rgba(255, 255, 255, 0.8)"

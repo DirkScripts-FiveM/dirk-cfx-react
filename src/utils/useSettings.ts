@@ -33,7 +33,6 @@ export const useSettings = create<SettingsState>(() => ({
 }));
 
 registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
-  console.log('Fetched settings:', data);
     if (!data) {
       console.warn('No settings data received from GET_SETTINGS fetch.');
       return;

@@ -27,7 +27,6 @@ export function createScriptSettings<T>(defaultValue: T) {
   // below returns {success, message} from the nui event
 
   const updateScriptSettings = async (newSettings: Partial<T>): Promise<NuiResponse> => {
-    console.log("Updating script settings:", JSON.stringify(newSettings, null, 2));
     store.setState((prev) => ({ ...prev, ...newSettings }));
     return await fetchNui<NuiResponse>("UPDATE_SCRIPT_SETTINGS", newSettings);
   };
