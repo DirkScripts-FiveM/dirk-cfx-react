@@ -43,15 +43,15 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     });
   }, [overideResourceName]);
 
-  useEffect(() => {
-    fetchNui<Partial<SettingsState>>('GET_SETTINGS').then((data) => {
-      useSettings.setState({
-        ...data,
-      });
-    }).catch((err) => {
-      console.error("Failed to fetch initial settings within dirk-cfx-react:", err);
-    });
-  }, []);
+  // useEffect(() => {
+  //   fetchNui<Partial<SettingsState>>('GET_SETTINGS').then((data) => {
+  //     useSettings.setState({
+  //       ...data,
+  //     });
+  //   }).catch((err) => {
+  //     console.error("Failed to fetch initial settings within dirk-cfx-react:", err);
+  //   });
+  // }, []);
 
   // 🚫 do not render until state is stable
 
@@ -87,10 +87,10 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
   );
 
   return (
-    <DirkErrorBoundary>
       <MantineProvider theme={mergedTheme} defaultColorScheme="dark">
-        {content}
+        <DirkErrorBoundary>
+            {content}
+        </DirkErrorBoundary>
       </MantineProvider>
-    </DirkErrorBoundary>
   );
 }
