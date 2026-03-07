@@ -1,6 +1,5 @@
-import { create } from "zustand";
-import { registerInitialFetch } from "./fetchNui";
 import { MantineColorsTuple } from "@mantine/core";
+import { create } from "zustand";
 
 export type SettingsState = {
   game: "fivem" | "rdr3";
@@ -32,12 +31,12 @@ export const useSettings = create<SettingsState>(() => ({
   ],
 }));
 
-registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
-    if (!data) {
-      console.warn('No settings data received from GET_SETTINGS fetch.');
-      return;
-    }
-    useSettings.setState({
-      ...data,
-    });
-})
+// registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
+//     if (!data) {
+//       console.warn('No settings data received from GET_SETTINGS fetch.');
+//       return;
+//     }
+//     useSettings.setState({
+//       ...data,
+//     });
+// })
