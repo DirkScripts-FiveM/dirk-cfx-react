@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { createContext, useContext, useRef } from "react";
+import React, { createContext, useContext, useMemo, useRef } from "react";
 import { createStore, StoreApi, useStore } from "zustand";
 
 /* ======================================================
@@ -81,6 +81,63 @@ function deleteNested(obj: any, path: string): any {
   return newObj;
 }
 
+function isPlainObject(value: any): value is Record<string, any> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !(value instanceof Date)
+  );
+}
+
+function collectChangedPaths(values: any, initial: any, prefix = ""): string[] {
+  if (Object.is(values, initial)) return [];
+
+  const valuesIsObj = isPlainObject(values);
+  const initialIsObj = isPlainObject(initial);
+  const valuesIsArr = Array.isArray(values);
+  const initialIsArr = Array.isArray(initial);
+
+  if (valuesIsArr || initialIsArr) {
+    const maxLen = Math.max(values?.length ?? 0, initial?.length ?? 0);
+    const fields: string[] = [];
+    for (let i = 0; i < maxLen; i++) {
+      const nextPrefix = prefix ? `${prefix}.${i}` : `${i}`;
+      fields.push(...collectChangedPaths(values?.[i], initial?.[i], nextPrefix));
+    }
+    return fields;
+  }
+
+  if (valuesIsObj || initialIsObj) {
+    const keys = new Set([
+      ...Object.keys(values ?? {}),
+      ...Object.keys(initial ?? {}),
+    ]);
+    const fields: string[] = [];
+    for (const key of keys) {
+      const nextPrefix = prefix ? `${prefix}.${key}` : key;
+      fields.push(...collectChangedPaths(values?.[key], initial?.[key], nextPrefix));
+    }
+    return fields;
+  }
+
+  return prefix ? [prefix] : [];
+}
+
+function computeChangedState<T>(
+  values: Partial<T>,
+  initialVals: Partial<T>
+): { fields: string[]; partial: Partial<T> } {
+  const fields = collectChangedPaths(values, initialVals);
+  let partial: Partial<T> = {};
+
+  for (const path of fields) {
+    partial = setNested(partial, path, getNested(values, path));
+  }
+
+  return { fields, partial };
+}
+
 function flattenRules(
   rules: any,
   prefix = ""
@@ -145,6 +202,7 @@ export type FormState<T> = {
   validateField: (path: string) => Promise<boolean>;
 
   reset: () => void;
+  reinitialize: (newValues: Partial<T>) => void;
 
   back: () => void;
   forward: () => void;
@@ -169,6 +227,7 @@ export function createFormStore<T>(
   onSubmit?: (form: FormState<T>) => void
 ) {
   const flatRules = validationRules ? flattenRules(validationRules) : {};
+
   const history: Partial<T>[] = [];
   const future: Partial<T>[] = [];
   const changed = new Set<string>();
@@ -302,7 +361,24 @@ export function createFormStore<T>(
       changed.clear();
 
       set({
-        values: initialValues,
+        values: get().initialValues,
+        errors: {},
+        partialChanged: {},
+        canBack: false,
+        canForward: false,
+        changedFields: [],
+        changedCount: 0,
+      });
+    },
+
+    reinitialize: (newValues) => {
+      history.length = 0;
+      future.length = 0;
+      changed.clear();
+
+      set({
+        values: newValues,
+        initialValues: newValues,
         errors: {},
         partialChanged: {},
         canBack: false,
@@ -318,25 +394,15 @@ export function createFormStore<T>(
       const prev = history.pop()!;
       future.push(get().values);
 
-      const initial = get().initialValues;
-      let partial: Partial<T> = {};
-      changed.clear();
-
-      for (const path of Object.keys(flatRules)) {
-        const val = getNested(prev, path);
-        if (val !== getNested(initial, path)) {
-          changed.add(path);
-          partial = setNested(partial, path, val);
-        }
-      }
+      const { fields, partial } = computeChangedState(prev, get().initialValues);
 
       set({
         values: prev,
         partialChanged: partial,
         canBack: history.length > 0,
         canForward: true,
-        changedFields: Array.from(changed),
-        changedCount: changed.size,
+        changedFields: fields,
+        changedCount: fields.length,
       });
     },
 
@@ -346,25 +412,15 @@ export function createFormStore<T>(
       const next = future.pop()!;
       history.push(get().values);
 
-      const initial = get().initialValues;
-      let partial: Partial<T> = {};
-      changed.clear();
-
-      for (const path of Object.keys(flatRules)) {
-        const val = getNested(next, path);
-        if (val !== getNested(initial, path)) {
-          changed.add(path);
-          partial = setNested(partial, path, val);
-        }
-      }
+      const { fields, partial } = computeChangedState(next, get().initialValues);
 
       set({
         values: next,
         partialChanged: partial,
         canBack: true,
         canForward: future.length > 0,
-        changedFields: Array.from(changed),
-        changedCount: changed.size,
+        changedFields: fields,
+        changedCount: fields.length,
       });
     },
   }));
@@ -403,7 +459,13 @@ export function useForm<T>() {
   if (!store) {
     throw new Error("useForm must be used inside <FormProvider>");
   }
-  return useStore(store) as FormState<T>;
+  const state = useStore(store) as FormState<T>;
+
+  const changedFields = useMemo(() => {
+    return collectChangedPaths(state.values, state.initialValues);
+  }, [state.values, state.initialValues]);
+
+  return { ...state, changedFields, changedCount: changedFields.length } as FormState<T>;
 }
 
 export function useFormField<T, P extends LoosePaths<T> = LoosePaths<T>>(
@@ -468,6 +530,7 @@ export function useFormActions<T>() {
     | "validate"
     | "validateField"
     | "reset"
+    | "reinitialize"
     | "back"
     | "forward"
     | "canBack"

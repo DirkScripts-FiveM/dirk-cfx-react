@@ -44,6 +44,7 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
   }, [overideResourceName]);
 
   useEffect(() => {
+    fetchNui('NUI_READY').catch(() => {});
     fetchNui<Partial<SettingsState>>('GET_SETTINGS').then((data) => {
       useSettings.setState({
         ...data,
