@@ -72,10 +72,8 @@ export function createScriptSettings<T>(defaultValue: T) {
   let clientVersion = 0;
 
   const useScriptSettingHooks = () => {
-    useNuiEvent<Partial<T>>("UPDATE_SCRIPT_SETTINGS", (data) => {
-      if (!data) return;
-      store.setState((prev) => ({ ...prev, ...(data as Partial<T>) }));
-    });
+    console.log("Setting up useNuiEvent for UPDATE_SCRIPT_SETTINGS");
+
   };
 
   const updateScriptSettings = async (newSettings: Partial<T>): Promise<NuiResponse<T>> => {
