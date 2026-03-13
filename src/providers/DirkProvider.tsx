@@ -46,9 +46,13 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
   useEffect(() => {
     console.log("DirkProvider mounted, fetching initial settings...");
     fetchNui('NUI_READY').catch(() => {});
-    fetchNui<Partial<SettingsState>>('GET_SETTINGS').then((data) => {
+    Promise.all([
+      fetchNui<Partial<SettingsState>>('GET_SETTINGS'),
+      fetchNui<{ version?: string }>('GET_RESOURCE_VERSION', undefined, { version: 'dev' }),
+    ]).then(([data, resourceInfo]) => {
       useSettings.setState({
         ...data,
+        resourceVersion: resourceInfo?.version || 'dev',
       });
     }).catch((err) => {
       console.error("Failed to fetch initial settings within dirk-cfx-react:", err);

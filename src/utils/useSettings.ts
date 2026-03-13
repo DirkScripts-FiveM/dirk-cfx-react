@@ -7,6 +7,7 @@ export type SettingsState = {
   primaryColor: string;
   primaryShade: number;
   itemImgPath: string;
+  resourceVersion?: string;
   customTheme?: MantineColorsTuple;
   overideResourceName?: string;
 };
@@ -17,6 +18,7 @@ export const useSettings = create<SettingsState>(() => ({
   primaryColor: "dirk",
   primaryShade: 9,
   itemImgPath: "",
+  resourceVersion: "dev",
   customTheme: [
     "#f0f4ff",
     "#d9e3ff",

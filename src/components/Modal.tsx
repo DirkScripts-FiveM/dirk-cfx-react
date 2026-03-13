@@ -1,126 +1,159 @@
+import { alpha, Flex, Portal, Text, useMantineTheme } from "@mantine/core";
+import { motion } from "framer-motion";
+import { X } from "lucide-react";
+import React from "react";
 
-import { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { alpha, Flex, Text, useMantineTheme } from "@mantine/core";
-import { useClickOutside } from "@mantine/hooks";
-import { AnimatePresence } from "framer-motion";
-import { useModal, useModalActions } from "./ModalStore";
-import { MotionFlex, MotionIcon } from "./Motion";
+export type ModalProps = {
+  title: string;
+  icon?: React.ElementType;
+  iconColor?: string;
+  description?: string;
+  badge?: { label: string; color: string };
+  onClose: () => void;
+  width?: string;
+  maxHeight?: string;
+  height?: string;
+  zIndex?: number;
+  clickOutside?: boolean;
+  children: React.ReactNode;
+};
 
-export default function Modal(){
-  const active = useModal((state) => state.active);
-  const {hideModal} = useModalActions();
-  
-  const ref = useClickOutside(() => {
-    if (!active) return;
-    if (active.clickOutside == false) return;
-    if (active) {
-    
-      hideModal();
-    }
-  });
-
+export function Modal({
+  title,
+  icon: Icon,
+  iconColor,
+  description,
+  badge,
+  onClose,
+  width = "52vh",
+  maxHeight = "85vh",
+  height,
+  zIndex = 100,
+  clickOutside = true,
+  children,
+}: ModalProps) {
   const theme = useMantineTheme();
-  
+
   return (
-    
-   <AnimatePresence>
-      {active && (
-        <MotionFlex
-          h='100%'
-          w='100%'
-          bg='rgba(0, 0, 0, 0.3)'
-          pos='absolute'
+    <Portal>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(0,0,0,0.65)",
+        }}
+        onClick={clickOutside ? onClose : undefined}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          onClick={(e) => e.stopPropagation()}
           style={{
-            zIndex: 2000,
-            filter: 'drop-shadow(0 0 2vh black)',
-
+            background: alpha(theme.colors.dark[9], 0.98),
+            border: `0.1vh solid ${theme.colors.dark[7]}`,
+            borderRadius: theme.radius.sm,
+            width,
+            maxHeight,
+            height,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            userSelect: "none",
           }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          align='center'
-          justify='center'
         >
-
-          <MotionFlex
-            pos='absolute'
-            top='50%'
-            left='50%'
-            ref={ref}
-            w={active.width || '40%'}
+          {/* Header */}
+          <Flex
+            justify="space-between"
+            align="center"
+            px="sm"
+            py="xs"
             style={{
-              transform: 'translate(-50%, -50%)',
-              borderRadius: theme.radius.xs,
-              boxShadow: theme.shadows.xl,
-              zIndex: 2100,
+              borderBottom: `0.1vh solid ${theme.colors.dark[7]}`,
+              flexShrink: 0,
             }}
-            bg={alpha(theme.colors.dark[9], 0.9)}
-          
-            initial={{ scale: 0.8, opacity: 0, transform: 'translate(-50%, -50%)' }}
-            animate={{ scale: 1, opacity: 1, transform: 'translate(-50%, -50%)' }}
-            exit={{ scale: 0.8, opacity: 0, transform: 'translate(-50%, -50%)' }}
-            p='sm'
-            direction='column'
-            // align='flex-start'
-            // mah='80%'
-            maw='70%'
-            gap='xs'
           >
-
-            <Flex
-              direction={'column'}
-              w='100%'
-            >
-              <Flex
-                w='100%'
-                align='center'
-                gap='xs'
-              >
-                {active.icon && (
-                  <FontAwesomeIcon 
-                    icon={active.icon as IconProp} 
-                    style={{
-                      fontSize: theme.fontSizes.xs,
-                    }} 
-                  />
-                )}
-                <Text
-                  size='sm'
-                >
-                  {active.title}
-                </Text>
-                <MotionIcon
-                  icon='times'
-                  color='rgba(255, 255, 255, 0.7)'
-                  whileHover={{
-                    scale: 1.1,
-                    filter: 'brightness(1.2)',
-                  }}
-                  style={{
-                    marginLeft: 'auto',
-                    cursor: 'pointer',
-                    fontSize: theme.fontSizes.sm,
-                  }}
-                  onClick={() => {
-                    hideModal();
-                  }}
+            <Flex align="center" gap="xs">
+              {Icon && (
+                <Icon
+                  color={iconColor ?? "rgba(255,255,255,0.6)"}
+                  size="2vh"
                 />
-              </Flex>
-              {active.description && (
-                <Text
-                  size="xs"
-                  c='rgba(255, 255, 255, 0.7)'
+              )}
+              <Text
+                ff="Akrobat Bold"
+                size="sm"
+                tt="uppercase"
+                lts="0.06em"
+                c="rgba(255,255,255,0.85)"
+              >
+                {title}
+              </Text>
+              {badge && (
+                <div
+                  style={{
+                    background: alpha(badge.color, 0.12),
+                    border: `0.1vh solid ${alpha(badge.color, 0.35)}`,
+                    borderRadius: theme.radius.xs,
+                    padding: `0 ${theme.spacing.xxs}`,
+                  }}
                 >
-                  {active.description}
-                </Text>
+                  <Text
+                    ff="Akrobat Bold"
+                    size="xxs"
+                    tt="uppercase"
+                    lts="0.06em"
+                    c={badge.color}
+                  >
+                    {badge.label}
+                  </Text>
+                </div>
               )}
             </Flex>
-            {active.children}
-          </MotionFlex>
-        </MotionFlex>
-      )}
-   </AnimatePresence>
-  )
+            <motion.button
+              onClick={onClose}
+              whileHover={{ background: alpha(theme.colors.dark[7], 0.5) }}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: theme.spacing.xxs,
+                borderRadius: theme.radius.xs,
+                display: "flex",
+              }}
+            >
+              <X color="rgba(255,255,255,0.4)" />
+            </motion.button>
+          </Flex>
+
+          {/* Description */}
+          {description && (
+            <Flex px="sm" pt="xs">
+              <Text
+                ff="Akrobat Regular"
+                size="xs"
+                c="rgba(255,255,255,0.65)"
+                style={{ lineHeight: 1.5 }}
+              >
+                {description}
+              </Text>
+            </Flex>
+          )}
+
+          {/* Content */}
+          {children}
+        </motion.div>
+      </motion.div>
+    </Portal>
+  );
 }
 
+export default Modal;

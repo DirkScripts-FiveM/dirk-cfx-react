@@ -21,7 +21,9 @@ export const genericInputStyles = {
     description: description,
     
     input:{
-      backgroundColor: 'rgba(76, 76, 76, 0.3)', 
+      background: 'rgba(255,255,255,0.04)',
+      border: '0.1vh solid rgba(255,255,255,0.08)',
+      color: 'rgba(255,255,255,0.85)',
       minHeight: '4vh',
     },
   },

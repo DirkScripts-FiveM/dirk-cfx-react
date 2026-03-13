@@ -1,17 +1,6 @@
-
-
-// This is a function that you will call and it will return liek so 
-// const {useScriptSettings, useScriptSettingHooks} = createScriptSettings<YourTypeHere>({
-//   key1: 'your_unique_value1',
-//   key2: {}
-//     subKey1: 'your_unique_value2',
-//     subKey2: 'your_unique_value3'
-//   }
-// })
-
 import { fetchNui } from "@/utils";
 import { useNuiEvent } from "@/hooks/useNuiEvent";
-import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { create } from "zustand";
 
 type ScriptSettingsUpdateMeta<T> = {
   client_version?: number;
@@ -66,14 +55,22 @@ type NuiResponse<T> = {
   meta?: ScriptSettingsUpdateMeta<T>;
 };
 
-
 export function createScriptSettings<T>(defaultValue: T) {
   const store = create<T>(() => defaultValue);
   let clientVersion = 0;
 
   const useScriptSettingHooks = () => {
-    console.log("Setting up useNuiEvent for UPDATE_SCRIPT_SETTINGS");
+    // useNuiEvent<{ settings?: Partial<T>; clientVersion?: number }>("UPDATE_SCRIPT_SETTINGS", (data) => {
+    //   if (!data) return;
 
+    //   if (typeof data.clientVersion === "number") {
+    //     clientVersion = data.clientVersion as number;
+    //   }
+
+    //   if (data.settings && typeof data.settings === "object") {
+    //     store.setState((prev) => ({ ...prev, ...(data.settings as Partial<T>) }));
+    //   }
+    // });
   };
 
   const updateScriptSettings = async (newSettings: Partial<T>): Promise<NuiResponse<T>> => {

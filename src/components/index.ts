@@ -13,3 +13,6 @@ export * from "./LevelPanel";
 export * from "./Modal";
 export * from "./PromptModal";
 export * from "./ModalStore";
+export * from "./ConfirmModal";
+export * from "./SettingsPanel";
+export * from "./SelectItem";

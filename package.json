@@ -55,18 +55,19 @@
     "@fortawesome/react-fontawesome": ">=3.1.0",
     "@mantine/core": ">=8.3.9",
     "@mantine/notifications": ">=8.3.9",
+    "@tanstack/react-query": "^5.90.21",
     "@types/fs-extra": ">=11.0.4",
     "@types/leaflet": ">=1.9.21",
     "@types/node": ">=24.9.1",
     "@types/react": ">=19.2.2",
     "framer-motion": ">=12.23.24",
     "fs-extra": ">=11.3.2",
+    "lucide-react": ">=0.547.0",
     "react": ">=19.2.0",
     "react-dom": ">=19.2.0",
     "tsup": ">=8.5.0",
     "typescript": ">=5.9.3",
-    "zustand": ">=5.0.3",
-    "lucide-react": ">=0.547.0"
+    "zustand": ">=5.0.3"
   },
   "peerDependencies": {
     "@fortawesome/fontawesome-svg-core": ">=7.1.0",
@@ -75,14 +76,15 @@
     "@fortawesome/free-solid-svg-icons": ">=7.1.0",
     "@fortawesome/react-fontawesome": ">=3.1.0",
     "@mantine/core": ">=8.3.9",
-    "@mantine/notifications": ">=8.3.9",
     "@mantine/hooks": ">=8.3.9",
+    "@mantine/notifications": ">=8.3.9",
+    "@tanstack/react-query": "^5.90.21",
     "axios": ">=1.13.1",
     "framer-motion": ">=12.23.24",
+    "lucide-react": ">=0.547.0",
     "react": ">=19.2.0",
     "react-dom": ">=19.2.0",
-    "zustand": ">=5.0.3",
-    "lucide-react": ">=0.547.0"
+    "zustand": ">=5.0.3"
   },
   "sideEffects": [
     "**/*.css",
