@@ -12,6 +12,8 @@ import { Modal } from "./Modal";
 import { MotionFlex } from "./Motion";
 import { FormProvider, useForm } from "../hooks/useForm";
 import { useSettings } from "../utils/useSettings";
+import { fetchNui } from "../utils/fetchNui";
+import { getScriptSettingsInstance } from "../hooks/useScriptSettings";
 import type {
   ScriptSettingsHistoryEntry,
   ScriptSettingsHistoryRequest,
@@ -31,14 +33,9 @@ export interface SettingsPanelProps<T extends Record<string, any> = Record<strin
   title: string;
   subtitle?: string;
   open: boolean;
-  onClose: () => void;
+  /** Defaults to fetchNui("CLOSE_ADMIN_SECTION") */
+  onClose?: () => void;
   children: (activeTab: string) => React.ReactNode;
-  /** Zustand store created by createScriptSettings */
-  store: { getState: () => T; setState: (partial: Partial<T>) => void };
-  /** updateScriptSettings from createScriptSettings */
-  updateSettings: (newSettings: Partial<T>) => Promise<any>;
-  /** getScriptSettingsHistory from createScriptSettings */
-  getHistory: (params?: ScriptSettingsHistoryRequest) => Promise<ScriptSettingsHistoryResponse>;
   /** Default settings for reset */
   defaultSettings: T;
   /** Zod schema for JSON validation (.safeParse) */
@@ -287,11 +284,10 @@ function HistoryTableHeader() {
 
 function SettingsHistoryModal({
   onClose,
-  getHistory,
 }: {
   onClose: () => void;
-  getHistory: (params?: ScriptSettingsHistoryRequest) => Promise<ScriptSettingsHistoryResponse>;
 }) {
+  const { getHistory } = getScriptSettingsInstance();
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
   const [queryInput, setQueryInput] = useState("");
@@ -383,9 +379,10 @@ function SettingsHistoryModal({
 
 function SettingsPanelInner<T extends Record<string, any>>({
   navItems, title, subtitle, children, isSaving, onClose,
-  getHistory, schema, resetConfirmText, defaultSettings, updateSettings,
+  schema, resetConfirmText, defaultSettings,
   width, height,
-}: Omit<SettingsPanelProps<T>, "open" | "store"> & { isSaving: boolean }) {
+}: Omit<SettingsPanelProps<T>, "open" | "onClose"> & { isSaving: boolean; onClose: () => void }) {
+  const { updateSettings, getHistory } = getScriptSettingsInstance<T>();
   const form = useForm<T>();
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
@@ -415,7 +412,7 @@ function SettingsPanelInner<T extends Record<string, any>>({
   return (
     <>
       <AnimatePresence>{jsonOpen && <SettingsJsonModal onClose={() => setJsonOpen(false)} schema={schema} />}</AnimatePresence>
-      <AnimatePresence>{historyOpen && <SettingsHistoryModal onClose={() => setHistoryOpen(false)} getHistory={getHistory} />}</AnimatePresence>
+      <AnimatePresence>{historyOpen && <SettingsHistoryModal onClose={() => setHistoryOpen(false)} />}</AnimatePresence>
       <AnimatePresence>
         {resetOpen && (
           <ConfirmModal
@@ -559,8 +556,11 @@ function cloneSettings<T>(value: T): T {
 
 // ── Public SettingsPanel ──────────────────────────────────────────────────────
 
+const defaultOnClose = () => fetchNui("CLOSE_ADMIN_SECTION");
+
 export function SettingsPanel<T extends Record<string, any>>(props: SettingsPanelProps<T>) {
-  const { open, store, updateSettings, onClose } = props;
+  const { open, onClose = defaultOnClose } = props;
+  const { store, updateSettings } = getScriptSettingsInstance<T>();
   const [isSaving, setIsSaving] = useState(false);
 
   if (!open) return null;
@@ -591,6 +591,7 @@ export function SettingsPanel<T extends Record<string, any>>(props: SettingsPane
           {open && (
             <SettingsPanelInner<T>
               {...props}
+              onClose={onClose}
               isSaving={isSaving}
             />
           )}

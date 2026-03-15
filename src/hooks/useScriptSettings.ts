@@ -55,6 +55,21 @@ type NuiResponse<T> = {
   meta?: ScriptSettingsUpdateMeta<T>;
 };
 
+// ── Singleton registry ────────────────────────────────────────────────────────
+
+export interface ScriptSettingsInstance<T = any> {
+  store: { getState: () => T; setState: (partial: Partial<T>) => void };
+  updateSettings: (newSettings: Partial<T>) => Promise<NuiResponse<T>>;
+  getHistory: (params?: ScriptSettingsHistoryRequest) => Promise<ScriptSettingsHistoryResponse>;
+}
+
+let _instance: ScriptSettingsInstance | null = null;
+
+export function getScriptSettingsInstance<T = any>(): ScriptSettingsInstance<T> {
+  if (!_instance) throw new Error("[dirk-cfx-react] createScriptSettings must be called before using SettingsPanel");
+  return _instance as ScriptSettingsInstance<T>;
+}
+
 export function createScriptSettings<T>(defaultValue: T) {
   const store = create<T>(() => defaultValue);
   let clientVersion = 0;
@@ -96,6 +111,12 @@ export function createScriptSettings<T>(defaultValue: T) {
     params: ScriptSettingsHistoryRequest = {}
   ): Promise<ScriptSettingsHistoryResponse> => {
     return fetchNui<ScriptSettingsHistoryResponse>('GET_SCRIPT_SETTINGS_HISTORY', params);
+  };
+
+  _instance = {
+    store,
+    updateSettings: updateScriptSettings,
+    getHistory: getScriptSettingsHistory,
   };
 
   return {store, updateScriptSettings, getScriptSettingsHistory, useScriptSettingHooks}
