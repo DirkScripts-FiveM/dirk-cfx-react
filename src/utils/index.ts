@@ -10,3 +10,4 @@ export * from "./images";
 export * from "./useSettings";
 export * from "./useItems";
 export * from "./inputMapper";
+export * from "./extractDefaults";

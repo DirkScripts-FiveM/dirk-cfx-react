@@ -1,3 +1,4 @@
+export * from "./BlipSelect";
 export * from "./BorderedIcon";
 export * from "./Counter";
 export * from "./FloatingParticles";
