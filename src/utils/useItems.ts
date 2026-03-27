@@ -28,4 +28,4 @@ registerInitialFetch<InventoryItems>("FETCH_ALL_ITEMS", null, {
 }).then((fetchedItems) => {
   if (!fetchedItems) return;
   useItems.setState(fetchedItems);
-});
+}).catch(() => {});

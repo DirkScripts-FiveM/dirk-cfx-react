@@ -5,12 +5,12 @@ import {
   Check, ChevronDown, Code2, Filter, History, Redo2, RotateCcw,
   Save as SaveIcon, Search, Undo2, User, X, XCircle,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { UIEvent } from "react";
 import { ConfirmModal } from "./ConfirmModal";
 import { Modal } from "./Modal";
 import { MotionFlex } from "./Motion";
-import { FormProvider, useForm } from "../hooks/useForm";
+import { FormProvider, useForm, useFormActions } from "../hooks/useForm";
 import { useSettings } from "../utils/useSettings";
 import { fetchNui } from "../utils/fetchNui";
 import { getScriptSettingsInstance } from "../hooks/useScriptSettings";
@@ -382,12 +382,13 @@ function SettingsPanelInner<T extends Record<string, any>>({
   schema, resetConfirmText, defaultSettings,
   width, height,
 }: Omit<SettingsPanelProps<T>, "open" | "onClose"> & { isSaving: boolean; onClose: () => void }) {
-  const { updateSettings, getHistory } = getScriptSettingsInstance<T>();
+  const { updateSettings, resetSettings, getHistory } = getScriptSettingsInstance<T>();
   const form = useForm<T>();
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
   const version = useSettings((s) => s.resourceVersion);
   const [activeTab, setActiveTab] = useState(navItems[0]?.id ?? "");
+  const firstMountRef = useRef(true);
   const [jsonOpen, setJsonOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -420,9 +421,13 @@ function SettingsPanelInner<T extends Record<string, any>>({
             description="This will permanently reset ALL settings back to their defaults. Every setting you have configured will be overwritten. This cannot be undone."
             confirmLabel="Reset Settings"
             confirmText={resetConfirmText}
-            onConfirm={() => {
-              updateSettings(defaultSettings).then(() => form.reinitialize(cloneSettings(defaultSettings)));
+            onConfirm={async () => {
               setResetOpen(false);
+              const result = await resetSettings();
+              if (result?.success) {
+                const { store } = getScriptSettingsInstance<T>();
+                form.reinitialize(cloneSettings(store.getState()));
+              }
             }}
             onClose={() => setResetOpen(false)}
             zIndex={300}
@@ -461,7 +466,7 @@ function SettingsPanelInner<T extends Record<string, any>>({
         <Flex direction="column" style={{ width: "18vh", flexShrink: 0, borderRight: `0.1vh solid ${alpha(theme.colors.dark[6], 0.8)}`, background: alpha(theme.colors.dark[8], 0.6), overflow: "hidden" }}>
           <Flex align="baseline" gap="0.3vh" px="sm" py="sm" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[6], 0.5)}`, flexShrink: 0 }}>
             <Text size="lg" ff="Akrobat Bold" tt="uppercase">{title}</Text>
-            {subtitle && <Text tt="uppercase" fw={600} c={color}>{subtitle}</Text>}
+            {subtitle && <Text tt="uppercase" fw={600} c={theme.colors[theme.primaryColor][theme.primaryShade as number]}>{subtitle}</Text>}
           </Flex>
 
           {/* Quick controls */}
@@ -538,7 +543,7 @@ function SettingsPanelInner<T extends Record<string, any>>({
 
         {/* ── Content ── */}
         <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+          <motion.div key={activeTab} initial={firstMountRef.current ? (firstMountRef.current = false, false) : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
             style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
             {children(activeTab)}
           </motion.div>
@@ -554,13 +559,30 @@ function cloneSettings<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+// ── ServerOnly Fetcher (merges x-serverOnly paths into form on admin open) ───
+
+function ServerOnlyFetcher<T extends Record<string, any>>() {
+  const { fetchSettings } = getScriptSettingsInstance<T>();
+  const { reinitialize } = useFormActions<T>();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSettings().then((full) => {
+      if (!cancelled && full) reinitialize(full as Partial<T>);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  return null;
+}
+
 // ── Public SettingsPanel ──────────────────────────────────────────────────────
 
 const defaultOnClose = () => fetchNui("CLOSE_ADMIN_SECTION");
 
 export function SettingsPanel<T extends Record<string, any>>(props: SettingsPanelProps<T>) {
   const { open, onClose = defaultOnClose } = props;
-  const { store, updateSettings } = getScriptSettingsInstance<T>();
+  const { store, updateSettings, fetchSettings } = getScriptSettingsInstance<T>();
   const [isSaving, setIsSaving] = useState(false);
 
   if (!open) return null;
@@ -576,6 +598,7 @@ export function SettingsPanel<T extends Record<string, any>>(props: SettingsPane
             const result: any = await updateSettings(form.values as T);
             if (result?.success) {
               form.reinitialize(cloneSettings(form.values as T));
+              settingsPanelQueryClient.invalidateQueries({ queryKey: ["scriptSettingsHistory"] });
               return;
             }
             form.reinitialize(cloneSettings(store.getState()));
@@ -587,6 +610,7 @@ export function SettingsPanel<T extends Record<string, any>>(props: SettingsPane
           }
         }}
       >
+        <ServerOnlyFetcher<T> />
         <AnimatePresence>
           {open && (
             <SettingsPanelInner<T>

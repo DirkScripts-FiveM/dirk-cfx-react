@@ -77,10 +77,7 @@ export async function runFetches() {
 export const useAutoFetcher = () => {
   useEffect(() => {
     if (isEnvBrowser()) return;
-    const run = async () => {
-      const results = await runFetches();
-    };
-    run();
+    runFetches().catch(() => {});
   }, []);
 };
 

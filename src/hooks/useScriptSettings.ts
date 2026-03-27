@@ -58,9 +58,11 @@ type NuiResponse<T> = {
 // ── Singleton registry ────────────────────────────────────────────────────────
 
 export interface ScriptSettingsInstance<T = any> {
-  store: { getState: () => T; setState: (partial: Partial<T>) => void };
+  store: { getState: () => T; setState: (partial: Partial<T> | ((prev: T) => T)) => void };
   updateSettings: (newSettings: Partial<T>) => Promise<NuiResponse<T>>;
+  resetSettings: () => Promise<{ success: boolean; _error?: string }>;
   getHistory: (params?: ScriptSettingsHistoryRequest) => Promise<ScriptSettingsHistoryResponse>;
+  fetchSettings: () => Promise<T | null>;
 }
 
 let _instance: ScriptSettingsInstance | null = null;
@@ -75,17 +77,35 @@ export function createScriptSettings<T>(defaultValue: T) {
   let clientVersion = 0;
 
   const useScriptSettingHooks = () => {
-    // useNuiEvent<{ settings?: Partial<T>; clientVersion?: number }>("UPDATE_SCRIPT_SETTINGS", (data) => {
-    //   if (!data) return;
+    useNuiEvent<{ settings?: Partial<T>; clientVersion?: number }>("UPDATE_SCRIPT_SETTINGS", (data) => {
+      if (!data) return;
 
-    //   if (typeof data.clientVersion === "number") {
-    //     clientVersion = data.clientVersion as number;
-    //   }
+      if (typeof data.clientVersion === "number") {
+        clientVersion = data.clientVersion as number;
+      }
 
-    //   if (data.settings && typeof data.settings === "object") {
-    //     store.setState((prev) => ({ ...prev, ...(data.settings as Partial<T>) }));
-    //   }
-    // });
+      if (data.settings && typeof data.settings === "object") {
+        store.setState((prev) => ({ ...prev, ...(data.settings as Partial<T>) }));
+      }
+    });
+  };
+
+  const fetchScriptSettings = async (): Promise<T | null> => {
+    try {
+      const response = await fetchNui<{
+        success: boolean;
+        data?: { settings: T; clientVersion: number };
+      }>("GET_FULL_SCRIPT_SETTINGS");
+
+      if (response?.success && response.data?.settings) {
+        store.setState(() => response.data!.settings as T);
+        if (typeof response.data.clientVersion === "number") {
+          clientVersion = response.data.clientVersion;
+        }
+        return response.data.settings;
+      }
+    } catch { /* fallback to current store state */ }
+    return null;
   };
 
   const updateScriptSettings = async (newSettings: Partial<T>): Promise<NuiResponse<T>> => {
@@ -113,13 +133,26 @@ export function createScriptSettings<T>(defaultValue: T) {
     return fetchNui<ScriptSettingsHistoryResponse>('GET_SCRIPT_SETTINGS_HISTORY', params);
   };
 
+  const resetSettings = async (): Promise<{ success: boolean; _error?: string }> => {
+    const response = await fetchNui<{ success: boolean; _error?: string }>('RESET_SCRIPT_SETTINGS');
+    if (response?.success) {
+      const fresh = await fetchScriptSettings();
+      if (fresh) {
+        store.setState(() => fresh);
+      }
+    }
+    return response;
+  };
+
   _instance = {
     store,
     updateSettings: updateScriptSettings,
+    resetSettings,
     getHistory: getScriptSettingsHistory,
+    fetchSettings: fetchScriptSettings,
   };
 
-  return {store, updateScriptSettings, getScriptSettingsHistory, useScriptSettingHooks}
+  return {store, updateScriptSettings, resetSettings, getScriptSettingsHistory, useScriptSettingHooks, fetchScriptSettings}
 } 
 
 

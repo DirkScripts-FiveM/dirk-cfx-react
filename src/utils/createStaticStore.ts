@@ -11,7 +11,7 @@ export const createStaticStore = <T extends object>(
     const data = fetchNui<Partial<T>>('GET_STATIC_STORE_DATA', { filePath }).then((fetchedData) => {
       // Once data is fetched, we set it in the store
       set({ ...fetchedData } as T);
-    });
+    }).catch(() => {});
     const initialState = {} as T;
 
     return {

@@ -1,7 +1,7 @@
 import { alpha, Flex, Portal, Text, useMantineTheme } from "@mantine/core";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import React from "react";
+import React, { useRef } from "react";
 
 export type ModalProps = {
   title: string;
@@ -33,6 +33,7 @@ export function Modal({
   children,
 }: ModalProps) {
   const theme = useMantineTheme();
+  const pointerDownOnOverlay = useRef(false);
 
   return (
     <Portal>
@@ -49,14 +50,20 @@ export function Modal({
           justifyContent: "center",
           background: "rgba(0,0,0,0.65)",
         }}
-        onClick={clickOutside ? onClose : undefined}
+        onPointerDown={(e) => {
+          pointerDownOnOverlay.current = e.target === e.currentTarget;
+        }}
+        onClick={(e) => {
+          if (clickOutside && e.target === e.currentTarget && pointerDownOnOverlay.current) {
+            onClose();
+          }
+        }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 8 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          onClick={(e) => e.stopPropagation()}
           style={{
             background: alpha(theme.colors.dark[9], 0.98),
             border: `0.1vh solid ${theme.colors.dark[7]}`,
@@ -149,7 +156,9 @@ export function Modal({
           )}
 
           {/* Content */}
-          {children}
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            {children}
+          </div>
         </motion.div>
       </motion.div>
     </Portal>
