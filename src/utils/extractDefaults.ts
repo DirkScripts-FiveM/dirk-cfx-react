@@ -5,7 +5,7 @@ type SchemaNode = {
 };
 
 /**
- * Mirrors the Lua `extractDefaults()` in dirk_lib/modules/scriptSettings/server.lua.
+ * Mirrors the Lua `extractDefaults()` in dirk_lib/modules/scriptConfig/server.lua.
  * Walks a JSON Schema tree and collects every `"default"` value into a plain object.
  */
 export function extractDefaults(schema: SchemaNode): Record<string, unknown> | undefined {

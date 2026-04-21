@@ -2,7 +2,7 @@ import { alpha, Box, Flex, JsonInput, Loader, Text, TextInput, useMantineTheme }
 import { useInfiniteQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Check, ChevronDown, Code2, Filter, History, Redo2, RotateCcw,
+  ArrowLeft, Check, ChevronDown, Code2, Filter, History, Redo2, RotateCcw,
   Save as SaveIcon, Search, Undo2, User, X, XCircle,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -13,12 +13,12 @@ import { MotionFlex } from "./Motion";
 import { FormProvider, useForm, useFormActions } from "../hooks/useForm";
 import { useSettings } from "../utils/useSettings";
 import { fetchNui } from "../utils/fetchNui";
-import { getScriptSettingsInstance } from "../hooks/useScriptSettings";
+import { getScriptConfigInstance } from "../hooks/useScriptConfig";
 import type {
-  ScriptSettingsHistoryEntry,
-  ScriptSettingsHistoryRequest,
-  ScriptSettingsHistoryResponse,
-} from "../hooks/useScriptSettings";
+  ScriptConfigHistoryEntry,
+  ScriptConfigHistoryRequest,
+  ScriptConfigHistoryResponse,
+} from "../hooks/useScriptConfig";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ export interface NavItem {
   label: string;
 }
 
-export interface SettingsPanelProps<T extends Record<string, any> = Record<string, any>> {
+export interface ConfigPanelProps<T extends Record<string, any> = Record<string, any>> {
   navItems: readonly NavItem[];
   title: string;
   subtitle?: string;
@@ -36,8 +36,8 @@ export interface SettingsPanelProps<T extends Record<string, any> = Record<strin
   /** Defaults to fetchNui("CLOSE_ADMIN_SECTION") */
   onClose?: () => void;
   children: (activeTab: string) => React.ReactNode;
-  /** Default settings for reset */
-  defaultSettings: T;
+  /** Default config for reset */
+  defaultConfig: T;
   /** Zod schema for JSON validation (.safeParse) */
   schema?: { safeParse: (data: unknown) => { success: boolean; data?: T; error?: { issues: { path: PropertyKey[]; message: string }[] } } };
   /** Reset confirm typed text (e.g. "dirk_fishing") */
@@ -48,7 +48,7 @@ export interface SettingsPanelProps<T extends Record<string, any> = Record<strin
 
 // ── Internal query client ─────────────────────────────────────────────────────
 
-const settingsPanelQueryClient = new QueryClient({
+const configPanelQueryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, gcTime: 5 * 60_000 } },
 });
 
@@ -98,13 +98,13 @@ function NavItemButton({
   );
 }
 
-// ── Settings JSON Modal ───────────────────────────────────────────────────────
+// ── Config JSON Modal ─────────────────────────────────────────────────────────
 
-function SettingsJsonModal<T extends Record<string, any>>({
+function ConfigJsonModal<T extends Record<string, any>>({
   onClose, schema,
 }: {
   onClose: () => void;
-  schema?: SettingsPanelProps<T>["schema"];
+  schema?: ConfigPanelProps<T>["schema"];
 }) {
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
@@ -142,7 +142,7 @@ function SettingsJsonModal<T extends Record<string, any>>({
   };
 
   return (
-    <Modal title="Settings JSON" icon={Code2} iconColor={color} onClose={onClose} width="60vh" maxHeight="80vh" zIndex={200}>
+    <Modal title="Config JSON" icon={Code2} iconColor={color} onClose={onClose} width="60vh" maxHeight="80vh" zIndex={200}>
       <Box flex={1} p="0.8vh" style={{ overflowY: "auto" }}>
         <JsonInput
           value={json}
@@ -183,7 +183,7 @@ function formatValue(value: unknown): string {
   try { return JSON.stringify(value); } catch { return String(value); }
 }
 
-function formatHistoryDateTime(entry: ScriptSettingsHistoryEntry): string {
+function formatHistoryDateTime(entry: ScriptConfigHistoryEntry): string {
   if (entry.at_unix) {
     const date = new Date(entry.at_unix * 1000);
     if (!Number.isNaN(date.getTime())) {
@@ -199,13 +199,13 @@ function formatHistoryDateTime(entry: ScriptSettingsHistoryEntry): string {
   return "Unknown time";
 }
 
-function historyEntryKey(entry: ScriptSettingsHistoryEntry, index: number) {
+function historyEntryKey(entry: ScriptConfigHistoryEntry, index: number) {
   return `${entry.at_unix}-${entry.applied_version}-${index}`;
 }
 
 // ── History sub-components ────────────────────────────────────────────────────
 
-function ChangeDetails({ entry }: { entry: ScriptSettingsHistoryEntry }) {
+function ChangeDetails({ entry }: { entry: ScriptConfigHistoryEntry }) {
   const theme = useMantineTheme();
   return (
     <Flex direction="column" gap="0.45vh" p="0.8vh" style={{ border: `0.1vh solid ${alpha(theme.colors.dark[6], 0.8)}`, borderRadius: theme.radius.xs, background: alpha(theme.colors.dark[9], 0.35) }}>
@@ -229,7 +229,7 @@ function ChangeDetails({ entry }: { entry: ScriptSettingsHistoryEntry }) {
   );
 }
 
-function HistoryTableRow({ entry, expanded, onToggle }: { entry: ScriptSettingsHistoryEntry; expanded: boolean; onToggle: () => void }) {
+function HistoryTableRow({ entry, expanded, onToggle }: { entry: ScriptConfigHistoryEntry; expanded: boolean; onToggle: () => void }) {
   const theme = useMantineTheme();
   const admin = entry.admin?.name || entry.admin?.identifier || "unknown";
   const firstPath = entry.changes?.[0]?.path || "-";
@@ -282,12 +282,12 @@ function HistoryTableHeader() {
 
 // ── History Modal ─────────────────────────────────────────────────────────────
 
-function SettingsHistoryModal({
+function ConfigHistoryModal({
   onClose,
 }: {
   onClose: () => void;
 }) {
-  const { getHistory } = getScriptSettingsInstance();
+  const { getHistory } = getScriptConfigInstance();
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
   const [queryInput, setQueryInput] = useState("");
@@ -301,7 +301,7 @@ function SettingsHistoryModal({
   const filters = useMemo(() => ({ query, path, admin }), [query, path, admin]);
 
   const historyQuery = useInfiniteQuery({
-    queryKey: ["scriptSettingsHistory", filters],
+    queryKey: ["scriptConfigHistory", filters],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
       const response = await getHistory({
@@ -312,7 +312,7 @@ function SettingsHistoryModal({
         admin: filters.admin || undefined,
       });
       if (!response?.success || !response.data) {
-        throw new Error(response?._error || "Failed to load settings history");
+        throw new Error(response?._error || "Failed to load config history");
       }
       return response.data;
     },
@@ -330,7 +330,7 @@ function SettingsHistoryModal({
   };
 
   return (
-    <Modal title="Settings History" icon={History} iconColor={color} onClose={onClose} width="88vh" maxHeight="82vh" zIndex={260}>
+    <Modal title="Config History" icon={History} iconColor={color} onClose={onClose} width="88vh" maxHeight="82vh" zIndex={260}>
       <Flex direction="column" style={{ flex: 1, minHeight: 0 }}>
         <Flex gap="xs" p="sm" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[7], 0.8)}` }}>
           <TextInput leftSection={<Search size="1.4vh" />} placeholder="Search path/admin/value" value={queryInput} onChange={(e) => setQueryInput(e.currentTarget.value)} size="xs" style={{ flex: 1 }} />
@@ -375,14 +375,14 @@ function SettingsHistoryModal({
   );
 }
 
-// ── SettingsPanel Inner ───────────────────────────────────────────────────────
+// ── ConfigPanel Inner ─────────────────────────────────────────────────────────
 
-function SettingsPanelInner<T extends Record<string, any>>({
+function ConfigPanelInner<T extends Record<string, any>>({
   navItems, title, subtitle, children, isSaving, onClose,
-  schema, resetConfirmText, defaultSettings,
+  schema, resetConfirmText, defaultConfig,
   width, height,
-}: Omit<SettingsPanelProps<T>, "open" | "onClose"> & { isSaving: boolean; onClose: () => void }) {
-  const { updateSettings, resetSettings, getHistory } = getScriptSettingsInstance<T>();
+}: Omit<ConfigPanelProps<T>, "open" | "onClose"> & { isSaving: boolean; onClose: () => void }) {
+  const { updateConfig, resetConfig, getHistory } = getScriptConfigInstance<T>();
   const form = useForm<T>();
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
@@ -392,16 +392,26 @@ function SettingsPanelInner<T extends Record<string, any>>({
   const [jsonOpen, setJsonOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
-  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"close" | "back" | null>(null);
   const changedCount = form.changedCount ?? 0;
   const isDirty = changedCount > 0;
+
+  const goBack = () => fetchNui("CONFIG_PANEL_BACK");
+
+  const handleBack = () => {
+    if (isDirty) {
+      setPendingAction("back");
+      return;
+    }
+    goBack();
+  };
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       if (isDirty) {
         e.preventDefault();
-        setCloseConfirmOpen(true);
+        setPendingAction("close");
         return;
       }
       onClose();
@@ -412,21 +422,21 @@ function SettingsPanelInner<T extends Record<string, any>>({
 
   return (
     <>
-      <AnimatePresence>{jsonOpen && <SettingsJsonModal onClose={() => setJsonOpen(false)} schema={schema} />}</AnimatePresence>
-      <AnimatePresence>{historyOpen && <SettingsHistoryModal onClose={() => setHistoryOpen(false)} />}</AnimatePresence>
+      <AnimatePresence>{jsonOpen && <ConfigJsonModal onClose={() => setJsonOpen(false)} schema={schema} />}</AnimatePresence>
+      <AnimatePresence>{historyOpen && <ConfigHistoryModal onClose={() => setHistoryOpen(false)} />}</AnimatePresence>
       <AnimatePresence>
         {resetOpen && (
           <ConfirmModal
             title="Reset to Defaults"
-            description="This will permanently reset ALL settings back to their defaults. Every setting you have configured will be overwritten. This cannot be undone."
-            confirmLabel="Reset Settings"
+            description="This will permanently reset ALL config back to the defaults. Every value you have configured will be overwritten. This cannot be undone."
+            confirmLabel="Reset Config"
             confirmText={resetConfirmText}
             onConfirm={async () => {
               setResetOpen(false);
-              const result = await resetSettings();
+              const result = await resetConfig();
               if (result?.success) {
-                const { store } = getScriptSettingsInstance<T>();
-                form.reinitialize(cloneSettings(store.getState()));
+                const { store } = getScriptConfigInstance<T>();
+                form.reinitialize(cloneConfig(store.getState()));
               }
             }}
             onClose={() => setResetOpen(false)}
@@ -435,13 +445,22 @@ function SettingsPanelInner<T extends Record<string, any>>({
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {closeConfirmOpen && (
+        {pendingAction !== null && (
           <ConfirmModal
             title="Discard Unsaved Changes?"
-            description="You have unsaved changes. Closing now will discard them."
-            confirmLabel="Close Without Saving"
-            onConfirm={() => { setCloseConfirmOpen(false); onClose(); }}
-            onClose={() => setCloseConfirmOpen(false)}
+            description={
+              pendingAction === "back"
+                ? "You have unsaved changes. Going back now will discard them."
+                : "You have unsaved changes. Closing now will discard them."
+            }
+            confirmLabel={pendingAction === "back" ? "Go Back Without Saving" : "Close Without Saving"}
+            onConfirm={() => {
+              const action = pendingAction;
+              setPendingAction(null);
+              if (action === "back") goBack();
+              else onClose();
+            }}
+            onClose={() => setPendingAction(null)}
             zIndex={300}
           />
         )}
@@ -464,9 +483,35 @@ function SettingsPanelInner<T extends Record<string, any>>({
       >
         {/* ── Sidebar ── */}
         <Flex direction="column" style={{ width: "18vh", flexShrink: 0, borderRight: `0.1vh solid ${alpha(theme.colors.dark[6], 0.8)}`, background: alpha(theme.colors.dark[8], 0.6), overflow: "hidden" }}>
-          <Flex align="baseline" gap="0.3vh" px="sm" py="sm" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[6], 0.5)}`, flexShrink: 0 }}>
-            <Text size="lg" ff="Akrobat Bold" tt="uppercase">{title}</Text>
-            {subtitle && <Text tt="uppercase" fw={600} c={theme.colors[theme.primaryColor][theme.primaryShade as number]}>{subtitle}</Text>}
+          <Flex align="center" gap="0.6vh" px="sm" py="sm" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[6], 0.5)}`, flexShrink: 0 }}>
+            <motion.button
+              title="Back to script list"
+              onClick={handleBack}
+              whileHover={{ background: alpha(color, 0.16), borderColor: alpha(color, 0.45) }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                aspectRatio: "1 / 1",
+                height: "2.4vh",
+                background: alpha(color, 0.08),
+                border: `0.1vh solid ${alpha(color, 0.3)}`,
+                borderRadius: theme.radius.xs,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <ArrowLeft size="1.4vh" color={color} />
+            </motion.button>
+            <Flex direction="column" style={{ minWidth: 0, lineHeight: 1 }}>
+              <Text size="lg" ff="Akrobat Bold" tt="uppercase" lts="0.04em" truncate>{title}</Text>
+              {subtitle && (
+                <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.08em" c={color} truncate>
+                  {subtitle}
+                </Text>
+              )}
+            </Flex>
           </Flex>
 
           {/* Quick controls */}
@@ -555,19 +600,19 @@ function SettingsPanelInner<T extends Record<string, any>>({
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
-function cloneSettings<T>(value: T): T {
+function cloneConfig<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
 // ── ServerOnly Fetcher (merges x-serverOnly paths into form on admin open) ───
 
 function ServerOnlyFetcher<T extends Record<string, any>>() {
-  const { fetchSettings } = getScriptSettingsInstance<T>();
+  const { fetchConfig } = getScriptConfigInstance<T>();
   const { reinitialize } = useFormActions<T>();
 
   useEffect(() => {
     let cancelled = false;
-    fetchSettings().then((full) => {
+    fetchConfig().then((full) => {
       if (!cancelled && full) reinitialize(full as Partial<T>);
     }).catch(() => {});
     return () => { cancelled = true; };
@@ -576,34 +621,34 @@ function ServerOnlyFetcher<T extends Record<string, any>>() {
   return null;
 }
 
-// ── Public SettingsPanel ──────────────────────────────────────────────────────
+// ── Public ConfigPanel ────────────────────────────────────────────────────────
 
 const defaultOnClose = () => fetchNui("CLOSE_ADMIN_SECTION");
 
-export function SettingsPanel<T extends Record<string, any>>(props: SettingsPanelProps<T>) {
+export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelProps<T>) {
   const { open, onClose = defaultOnClose } = props;
-  const { store, updateSettings, fetchSettings } = getScriptSettingsInstance<T>();
+  const { store, updateConfig } = getScriptConfigInstance<T>();
   const [isSaving, setIsSaving] = useState(false);
 
   if (!open) return null;
 
   return (
-    <QueryClientProvider client={settingsPanelQueryClient}>
+    <QueryClientProvider client={configPanelQueryClient}>
       <FormProvider<T>
-        initialValues={cloneSettings(store.getState())}
+        initialValues={cloneConfig(store.getState())}
         onSubmit={async (form) => {
           if (isSaving) return;
           setIsSaving(true);
           try {
-            const result: any = await updateSettings(form.values as T);
+            const result: any = await updateConfig(form.values as T);
             if (result?.success) {
-              form.reinitialize(cloneSettings(form.values as T));
-              settingsPanelQueryClient.invalidateQueries({ queryKey: ["scriptSettingsHistory"] });
+              form.reinitialize(cloneConfig(form.values as T));
+              configPanelQueryClient.invalidateQueries({ queryKey: ["scriptConfigHistory"] });
               return;
             }
-            form.reinitialize(cloneSettings(store.getState()));
+            form.reinitialize(cloneConfig(store.getState()));
             if (result?._error) {
-              console.warn(`[SettingsPanel] settings save failed: ${result._error}`);
+              console.warn(`[ConfigPanel] config save failed: ${result._error}`);
             }
           } finally {
             setIsSaving(false);
@@ -613,7 +658,7 @@ export function SettingsPanel<T extends Record<string, any>>(props: SettingsPane
         <ServerOnlyFetcher<T> />
         <AnimatePresence>
           {open && (
-            <SettingsPanelInner<T>
+            <ConfigPanelInner<T>
               {...props}
               onClose={onClose}
               isSaving={isSaving}
