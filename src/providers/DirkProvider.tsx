@@ -20,6 +20,7 @@ import { useEffect, useLayoutEffect, useMemo } from "react";
 
 import { useNuiEvent } from "@/hooks/useNuiEvent";
 import { fetchNui, isEnvBrowser } from "@/utils";
+import { localeStore } from "@/utils/locales";
 import { mergeMantineThemeSafe } from "@/utils/mergeMantineTheme";
 import { SettingsState, useSettings } from "@/utils/useSettings";
 import { DirkErrorBoundary } from "./DirkErrorBoundary";
@@ -37,6 +38,12 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     customTheme,
     game,
   } = useSettings();
+
+  // Subscribe to locale changes so the entire tree re-renders when an admin
+  // updates `language` via dirk_lib's scriptConfig — components calling
+  // `locale("Foo")` directly (no hook) get fresh strings on the next render.
+  const _locales = localeStore((s) => s.locales);
+  void _locales;
 
   useLayoutEffect(() => {
     useSettings.setState({
@@ -71,22 +78,11 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
   // 🚫 do not render until state is stable
 
   const mergedTheme = useMemo(
-    () => {
-      const merged = mergeMantineThemeSafe(
-        { ...theme, primaryColor, primaryShade: primaryShade as MantineColorShade },
-        customTheme,
-        themeOverride
-      );
-      console.log('[DirkProvider:theme]', {
-        primaryColor,
-        primaryShade,
-        customTheme,
-        mergedPrimaryColor: merged.primaryColor,
-        mergedColorsKeys: Object.keys(merged.colors ?? {}),
-        mergedCustomPalette: (merged.colors as Record<string, unknown> | undefined)?.custom,
-      });
-      return merged;
-    },
+    () => mergeMantineThemeSafe(
+      { ...theme, primaryColor, primaryShade: primaryShade as MantineColorShade },
+      customTheme,
+      themeOverride
+    ),
     [primaryColor, primaryShade, customTheme, themeOverride]
   );
 

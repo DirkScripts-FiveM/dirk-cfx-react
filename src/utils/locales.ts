@@ -37,9 +37,20 @@ export const localeStore = create<LocaleStoreProps>((set, get) => {
   };
 });
 
-// export locale as a standalone function 
+// export locale as a standalone function
 export const locale = localeStore.getState().locale;
 
 registerInitialFetch<LocalesProps>('GET_LOCALES', undefined).then((data) => {
   localeStore.setState({ locales: data });
 }).catch(() => {})
+
+// dirk_lib broadcasts UPDATE_DIRK_LIB_LOCALES whenever an admin changes the
+// `language` setting, so the dict updates live without a resource restart.
+if (typeof window !== "undefined") {
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (!msg || msg.action !== "UPDATE_DIRK_LIB_LOCALES") return;
+    if (!msg.data || typeof msg.data !== "object") return;
+    localeStore.setState({ locales: msg.data as LocalesProps });
+  });
+}

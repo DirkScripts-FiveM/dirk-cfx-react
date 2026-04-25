@@ -1,7 +1,8 @@
-import { useMantineTheme, Flex, Text, alpha } from "@mantine/core";
+import { useMantineTheme, Flex, Text, alpha, Tooltip } from "@mantine/core";
 import { MotionFlex } from "./Motion";
 import { Variants } from "framer-motion";
 import { colorWithAlpha } from "@/utils";
+import { Info } from "lucide-react";
 
 export type InputContainerProps = {
   title?:string;
@@ -44,12 +45,11 @@ export function InputContainer(props: InputContainerProps){
       <Flex
         align='center'
         gap='xs'
-        
       >
         {(props.title || props.description) && (
           <Flex
-            direction={'column'}
-            gap='xxs'
+            align='center'
+            flex={1}
             p={props.p == '0' ? 'sm' : 0}
           >
             {props.title && (
@@ -61,16 +61,33 @@ export function InputContainer(props: InputContainerProps){
                   letterSpacing: '0.05em',
                   textTransform: 'uppercase',
                 }}
-              >{props.title}</Text>     
+              >{props.title}</Text>
             )}
             {props.description && (
-              <Text
-                size='xs'
-                c='rgba(255, 255, 255, 0.8)'
-                fw={400}
-              >{props.description}</Text>  
+              <Tooltip
+                label={props.description}
+                position="top-end"
+                withArrow
+                multiline
+                maw="22vh"
+                styles={{
+                  tooltip: {
+                    background: alpha(theme.colors.dark[7], 0.95),
+                    border: `0.1vh solid rgba(255,255,255,0.1)`,
+                    color: 'rgba(255,255,255,0.75)',
+                    fontFamily: 'Akrobat Bold',
+                    fontSize: '1.3vh',
+                    lineHeight: 1.3,
+                    padding: '0.6vh 0.8vh',
+                    letterSpacing: '0.03em',
+                  },
+                }}
+              >
+                <Flex align='center' justify='center' style={{ marginLeft: 'auto', cursor: 'help' }}>
+                  <Info size="1.6vh" color={alpha(theme.colors[theme.primaryColor][5], 0.45)} />
+                </Flex>
+              </Tooltip>
             )}
-
           </Flex>
         )}
         {props.error && (
@@ -82,13 +99,13 @@ export function InputContainer(props: InputContainerProps){
             lh='0.8'
           >
             {props.error}
-          </Text> 
+          </Text>
         )}
-        <Flex
-          ml='auto'
-        >
-          {props.rightSection}
-        </Flex>
+        {props.rightSection && (
+          <Flex>
+            {props.rightSection}
+          </Flex>
+        )}
       </Flex>
       {props.children}            
     </MotionFlex>

@@ -31,8 +31,12 @@ export async function fetchNui<T = unknown>(
   const resourceName = (window as any).GetParentResourceName
     ? (window as any).GetParentResourceName()
     : overrideResourceName ? overrideResourceName : "dirk-cfx-react";
-  const resp = await fetch(`https://${resourceName}/${eventName}`, options);
-  return await resp.json();
+  try {
+    const resp = await fetch(`https://${resourceName}/${eventName}`, options);
+    return await resp.json();
+  } catch {
+    return (mockData ?? ({} as T));
+  }
 }
 
 // -----------------------------
