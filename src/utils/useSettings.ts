@@ -10,6 +10,9 @@ export type SettingsState = {
   resourceVersion?: string;
   customTheme?: MantineColorsTuple;
   overideResourceName?: string;
+  serverName?: string;
+  logo?: string;
+  language?: string;
 };
 
 export const useSettings = create<SettingsState>(() => ({

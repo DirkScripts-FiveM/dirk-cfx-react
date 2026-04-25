@@ -18,6 +18,7 @@ import theme from "@/theme";
 import { BackgroundImage, MantineColorShade, MantineProvider } from "@mantine/core";
 import { useEffect, useLayoutEffect, useMemo } from "react";
 
+import { useNuiEvent } from "@/hooks/useNuiEvent";
 import { fetchNui, isEnvBrowser } from "@/utils";
 import { mergeMantineThemeSafe } from "@/utils/mergeMantineTheme";
 import { SettingsState, useSettings } from "@/utils/useSettings";
@@ -58,15 +59,34 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
     });
   }, []);
 
+  // Live updates: dirk_lib broadcasts UPDATE_DIRK_LIB_SETTINGS whenever an admin
+  // changes appearance/localization via the scriptConfig UI. Merge the partial
+  // patch into the settings store so theme / currency / branding update live
+  // without a resource restart.
+  useNuiEvent<Partial<SettingsState>>('UPDATE_DIRK_LIB_SETTINGS', (data) => {
+    if (!data || typeof data !== 'object') return;
+    useSettings.setState(data);
+  });
+
   // 🚫 do not render until state is stable
 
   const mergedTheme = useMemo(
-    () =>
-      mergeMantineThemeSafe(
+    () => {
+      const merged = mergeMantineThemeSafe(
         { ...theme, primaryColor, primaryShade: primaryShade as MantineColorShade },
         customTheme,
         themeOverride
-      ),
+      );
+      console.log('[DirkProvider:theme]', {
+        primaryColor,
+        primaryShade,
+        customTheme,
+        mergedPrimaryColor: merged.primaryColor,
+        mergedColorsKeys: Object.keys(merged.colors ?? {}),
+        mergedCustomPalette: (merged.colors as Record<string, unknown> | undefined)?.custom,
+      });
+      return merged;
+    },
     [primaryColor, primaryShade, customTheme, themeOverride]
   );
 
