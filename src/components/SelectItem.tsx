@@ -11,7 +11,7 @@ export type SelectItemProps = {
   excludeItemNames?: string[];
 };
 
-function LazyImage({ src, alt, style }: { src: string; alt: string; style?: React.CSSProperties }) {
+function LazyImage({ src, style }: { src: string; style?: React.CSSProperties }) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -26,9 +26,12 @@ function LazyImage({ src, alt, style }: { src: string; alt: string; style?: Reac
     return () => observer.disconnect();
   }, []);
 
+  // No alt — when an item's image src 404s the alt string would render in
+  // place of the image and blow the cell out, throwing the input layout
+  // off (clicking the icon area then misses the input click target).
   return (
     <div ref={ref} style={{ width: "4vh", height: "4vh" }}>
-      {visible && <Image src={src} alt={alt} fit="contain" style={style} />}
+      {visible && <Image src={src} fit="contain" style={style} />}
     </div>
   );
 }
@@ -59,13 +62,19 @@ export function SelectItem(props: SelectItemProps) {
       data={formattedItems}
       allowDeselect={false}
       searchable
+      // Portal the dropdown so it isn't clipped by overflow:hidden parents
+      // (e.g. live-editor side panels) and stack it above modal content.
+      comboboxProps={{ withinPortal: true, zIndex: 2000 }}
       leftSectionWidth="4vh"
+      // Pointer events off on the leftSection so clicks anywhere on the
+      // input (including over the item icon) bubble through to the input
+      // and open the dropdown.
+      leftSectionPointerEvents="none"
       leftSection={
         props.value ? (
           <Image
             fallbackSrc="/placeholder.png"
             src={invItems[props.value]?.image || ""}
-            alt={props.value}
             fit="contain"
             maw="4vh"
             style={{ aspectRatio: "1 / 1" }}
@@ -77,7 +86,6 @@ export function SelectItem(props: SelectItemProps) {
         <Flex align="center" gap="xs" w="100%">
           <LazyImage
             src={invItems[item.option.value]?.image || ""}
-            alt={item.option.label}
             style={{ aspectRatio: "1 / 1" }}
           />
           <Flex direction="column">
