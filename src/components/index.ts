@@ -17,6 +17,7 @@ export * from "./ModalStore";
 export * from "./ConfirmModal";
 export * from "./ConfigPanel";
 export * from "./SelectItem";
+export * from "./PositionPicker";
 export * from "./FiveMKeyBindInput";
 export * from "./AsyncSaveButton";
 export * from "./AdminPageTitle";

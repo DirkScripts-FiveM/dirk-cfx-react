@@ -551,3 +551,39 @@ export function BlipColorSelect({ value, onChange, label = "Blip Color", size = 
     />
   );
 }
+
+// ── BlipDisplaySelect ──────────────────────────────────────────────────────
+// Sets the FiveM blip's display behaviour. Most server owners only want one
+// of the four meaningful patterns; the duplicate ids are exposed verbatim so
+// existing saved values keep displaying correctly.
+
+const BLIP_DISPLAY_DATA: { value: string; label: string }[] = [
+  { value: "2",  label: "2 — Main map + minimap (selectable)" },
+  { value: "3",  label: "3 — Main map only (selectable)" },
+  { value: "4",  label: "4 — Main map only (selectable)" },
+  { value: "5",  label: "5 — Minimap only" },
+  { value: "6",  label: "6 — Main map + minimap (selectable)" },
+  { value: "8",  label: "8 — Main map + minimap (not selectable)" },
+  { value: "9",  label: "9 — Minimap only" },
+  { value: "10", label: "10 — Main map + minimap (not selectable)" },
+];
+
+export type BlipDisplaySelectProps = Omit<SelectProps, "data" | "value" | "onChange"> & {
+  value: number | null;
+  onChange: (id: number) => void;
+};
+
+export function BlipDisplaySelect({ value, onChange, label = "Blip Display", size = "xs", ...rest }: BlipDisplaySelectProps) {
+  return (
+    <Select
+      label={label}
+      size={size}
+      {...rest}
+      data={BLIP_DISPLAY_DATA}
+      value={value != null ? String(value) : null}
+      onChange={(val) => val != null && onChange(Number(val))}
+      allowDeselect={false}
+      maxDropdownHeight={300}
+    />
+  );
+}
