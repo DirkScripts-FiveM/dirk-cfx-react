@@ -1,5 +1,7 @@
 import { alpha, Box, Flex, JsonInput, Loader, Text, TextInput, useMantineTheme } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { useInfiniteQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { locale } from "../utils/locales";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Check, ChevronDown, Code2, Filter, History, Redo2, RotateCcw,
@@ -644,12 +646,34 @@ export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelPro
             if (result?.success) {
               form.reinitialize(cloneConfig(form.values as T));
               configPanelQueryClient.invalidateQueries({ queryKey: ["scriptConfigHistory"] });
+              notifications.show({
+                color: "green",
+                title: locale("ConfigSaveSuccessTitle"),
+                message: locale("ConfigSaveSuccessBody"),
+                autoClose: 3000,
+              });
               return;
             }
             form.reinitialize(cloneConfig(store.getState()));
-            if (result?._error) {
-              console.warn(`[ConfigPanel] config save failed: ${result._error}`);
-            }
+            const err = result?._error || "Unknown";
+            console.warn(`[ConfigPanel] config save failed: ${err}`);
+            // Map common server-side error codes to friendlier copy. Falls
+            // back to the raw code so unknown errors still surface something
+            // visible instead of swallowing silently.
+            const titleKey = err === "NoPermission"     ? "ConfigSaveNoPermissionTitle"
+                          : err === "VersionConflict"  ? "ConfigSaveVersionConflictTitle"
+                          : err === "NotReady"         ? "ConfigSaveNotReadyTitle"
+                          : "ConfigSaveFailedTitle";
+            const bodyKey  = err === "NoPermission"     ? "ConfigSaveNoPermissionBody"
+                          : err === "VersionConflict"  ? "ConfigSaveVersionConflictBody"
+                          : err === "NotReady"         ? "ConfigSaveNotReadyBody"
+                          : "ConfigSaveFailedBody";
+            notifications.show({
+              color: "red",
+              title: locale(titleKey),
+              message: locale(bodyKey, err),
+              autoClose: 6000,
+            });
           } finally {
             setIsSaving(false);
           }

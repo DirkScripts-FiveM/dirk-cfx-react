@@ -1,6 +1,6 @@
 import { alpha, Flex, NumberInput, Text, Tooltip, useMantineTheme } from "@mantine/core";
 import { motion } from "framer-motion";
-import { Crosshair, Eye, EyeOff, MapPin, RotateCcw } from "lucide-react";
+import { Crosshair, Eye, EyeOff, MapPin, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fetchNui } from "../utils/fetchNui";
 import { locale } from "../utils/locales";
@@ -256,3 +256,171 @@ function PickerButton({
     </Tooltip>
   );
 }
+
+// ── Compact row pieces ───────────────────────────────────────────────────────
+// Lower-friction siblings of <PositionPicker> for cases where you want a
+// scannable list of positions instead of a single full editor. Use these
+// when each row in a list should expose Set / Goto actions and just show
+// the resulting `vector4(x, y, z, w)` underneath — no inline number inputs.
+//
+// Lua side must register `GET_POSITION` (returns current world coords + heading)
+// and `GOTO_POSITION` (teleports the player to {x,y,z,w}). dirk_druglabsv2's
+// `src/client/shellEditor.lua` is the canonical example.
+
+function fmtV4(n: number) {
+  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+}
+
+/** Read-only `vector4(x, y, z, w)` line in the same boxed style as PositionPicker. */
+export function Vector4Display({ value }: { value: Vector4Value }) {
+  const theme = useMantineTheme();
+  return (
+    <Flex
+      align="center"
+      gap="xs"
+      p="xs"
+      style={{
+        background: alpha(theme.colors.dark[5], 0.35),
+        border: "0.1vh solid rgba(255,255,255,0.05)",
+        borderRadius: theme.radius.xs,
+      }}
+    >
+      <Text
+        ff="monospace"
+        size="xxs"
+        c="rgba(255,255,255,0.85)"
+        style={{ flex: 1, letterSpacing: "0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+      >
+        vector4({fmtV4(value.x)}, {fmtV4(value.y)}, {fmtV4(value.z)}, {fmtV4(value.w)})
+      </Text>
+    </Flex>
+  );
+}
+
+/** Reusable styled action button used by Set/Goto/etc. */
+function Vector4ActionButton({
+  icon,
+  label,
+  tooltip,
+  onClick,
+  color,
+  compact,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tooltip: string;
+  onClick: () => void;
+  color: string;
+  compact?: boolean;
+}) {
+  const theme = useMantineTheme();
+  return (
+    <Tooltip label={tooltip} position="top" withArrow withinPortal zIndex={2000}>
+      <motion.button
+        onClick={onClick}
+        whileHover={{ background: alpha(color, 0.18) }}
+        whileTap={{ scale: 0.95 }}
+        style={{
+          background: alpha(color, 0.1),
+          border: `0.1vh solid ${alpha(color, 0.35)}`,
+          borderRadius: theme.radius.xs,
+          padding: compact ? "0.25vh 0.6vh" : "0.5vh 0.8vh",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: compact ? "0.3vh" : "0.4vh",
+        }}
+      >
+        {icon}
+        <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c={color}>
+          {label}
+        </Text>
+      </motion.button>
+    </Tooltip>
+  );
+}
+
+/** Grabs the player's current world coords+heading via `GET_POSITION`. */
+export function WorldPositionSetButton({
+  value,
+  onChange,
+  compact,
+}: {
+  value: Vector4Value;
+  onChange: (v: Vector4Value) => void;
+  compact?: boolean;
+}) {
+  const theme = useMantineTheme();
+  const color = theme.colors[theme.primaryColor][5];
+  const grab = async () => {
+    try {
+      const resp = await fetchNui<Vector4Value | null>("GET_POSITION", {}, value);
+      if (!resp || typeof resp !== "object") return;
+      onChange({
+        x: Number(resp.x ?? 0),
+        y: Number(resp.y ?? 0),
+        z: Number(resp.z ?? 0),
+        w: Number(resp.w ?? 0),
+      });
+    } catch {
+      // Lua surfaces a notify on failure
+    }
+  };
+  return (
+    <Vector4ActionButton
+      icon={<Crosshair size={compact ? "1.1vh" : "1.3vh"} color={color} />}
+      label={locale("Set")}
+      tooltip={locale("SetWorldTooltip")}
+      onClick={grab}
+      color={color}
+      compact={compact}
+    />
+  );
+}
+
+/** Teleports the player to the stored coords via `GOTO_POSITION`. */
+export function WorldPositionGotoButton({
+  value,
+  compact,
+}: {
+  value: Vector4Value;
+  compact?: boolean;
+}) {
+  const theme = useMantineTheme();
+  const color = theme.colors[theme.primaryColor][5];
+  const goto = () => {
+    fetchNui("GOTO_POSITION", value).catch(() => {});
+  };
+  return (
+    <Vector4ActionButton
+      icon={<MapPin size={compact ? "1.1vh" : "1.3vh"} color={color} />}
+      label={locale("Goto")}
+      tooltip={locale("GotoWorldTooltip")}
+      onClick={goto}
+      color={color}
+      compact={compact}
+    />
+  );
+}
+
+/** Red-tinted Delete button matching the Set/Goto styling. */
+export function Vector4DeleteButton({
+  onClick,
+  compact,
+}: {
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  const color = "#ef4444";
+  return (
+    <Vector4ActionButton
+      icon={<Trash2 size={compact ? "1.1vh" : "1.3vh"} color={color} />}
+      label={locale("Delete")}
+      tooltip={locale("Delete")}
+      onClick={onClick}
+      color={color}
+      compact={compact}
+    />
+  );
+}
+
