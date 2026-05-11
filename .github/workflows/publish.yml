@@ -1,0 +1,68 @@
+name: Publish to npm
+
+# Auto-publishes dirk-cfx-react to npm whenever the version in package.json
+# bumps. Avoids the "I forgot to publish so the consumer's GitHub Actions
+# build pulled the old version" footgun.
+#
+# Behaviour:
+#   - On every push to main, check whether the current package.json version
+#     already exists on npm.
+#   - If it does → skip publish (idempotent; lets non-version commits land
+#     on main without errors).
+#   - If it does not → install, build, publish.
+#
+# Requires the repo secret `NPM_TOKEN` (a npm automation token with
+# publish rights to the dirk-cfx-react package).
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Read package version
+        id: pkg
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version already on npm
+        id: check
+        run: |
+          if npm view dirk-cfx-react@${{ steps.pkg.outputs.version }} version > /dev/null 2>&1; then
+            echo "Version ${{ steps.pkg.outputs.version }} already published — skipping."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version ${{ steps.pkg.outputs.version }} is new — will publish."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.check.outputs.publish == 'true'
+        run: pnpm build
+
+      - name: Publish to npm
+        if: steps.check.outputs.publish == 'true'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

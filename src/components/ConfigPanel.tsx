@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { UIEvent } from "react";
 import { ConfirmModal } from "./ConfirmModal";
 import { Modal } from "./Modal";
+import { MissingItemsBanner, useMissingItemsAudit } from "./MissingItemsBanner";
 import { MotionFlex } from "./Motion";
 import { FormProvider, useForm, useFormActions } from "../hooks/useForm";
 import { useSettings } from "../utils/useSettings";
@@ -46,6 +47,10 @@ export interface ConfigPanelProps<T extends Record<string, any> = Record<string,
   resetConfirmText?: string;
   width?: string;
   height?: string;
+  /** Skip the auto-mounted MissingItemsBanner. Default: false (banner shown).
+      The banner self-hides when nothing is missing, so leaving it on costs
+      nothing visually. */
+  suppressMissingItemsBanner?: boolean;
 }
 
 // ── Internal query client ─────────────────────────────────────────────────────
@@ -382,7 +387,7 @@ function ConfigHistoryModal({
 function ConfigPanelInner<T extends Record<string, any>>({
   navItems, title, subtitle, children, isSaving, onClose,
   schema, resetConfirmText, defaultConfig,
-  width, height,
+  width, height, suppressMissingItemsBanner,
 }: Omit<ConfigPanelProps<T>, "open" | "onClose"> & { isSaving: boolean; onClose: () => void }) {
   const { updateConfig, resetConfig, getHistory } = getScriptConfigInstance<T>();
   const form = useForm<T>();
@@ -588,13 +593,24 @@ function ConfigPanelInner<T extends Record<string, any>>({
           </Flex>
         </Flex>
 
-        {/* ── Content ── */}
-        <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={firstMountRef.current ? (firstMountRef.current = false, false) : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-            style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-            {children(activeTab)}
-          </motion.div>
-        </AnimatePresence>
+        {/* ── Right column: banner stacked above content ── */}
+        {/* Wrapped in a column flex so the banner sits on top of the tab
+            content. The parent MotionFlex is `direction="row"` for sidebar +
+            content-area, so without this wrapper the banner becomes a third
+            column and gets squeezed to the left edge of the content area. */}
+        <Flex direction="column" style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          {/* Above the AnimatePresence so it doesn't unmount on every tab
+              switch. Self-hides when nothing's missing; consumers can disable
+              entirely via `suppressMissingItemsBanner`. */}
+          {!suppressMissingItemsBanner && <MissingItemsBanner />}
+
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} initial={firstMountRef.current ? (firstMountRef.current = false, false) : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+              style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+              {children(activeTab)}
+            </motion.div>
+          </AnimatePresence>
+        </Flex>
       </MotionFlex>
     </>
   );
@@ -646,6 +662,10 @@ export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelPro
             if (result?.success) {
               form.reinitialize(cloneConfig(form.values as T));
               configPanelQueryClient.invalidateQueries({ queryKey: ["scriptConfigHistory"] });
+              // Re-run the missing-items audit since item-name fields might
+              // have changed in this save. One-shot per save — not an event
+              // listener loop, no spam.
+              useMissingItemsAudit.getState().refresh();
               notifications.show({
                 color: "green",
                 title: locale("ConfigSaveSuccessTitle"),

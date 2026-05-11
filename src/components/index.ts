@@ -23,4 +23,5 @@ export * from "./FiveMKeyBindInput";
 export * from "./ControlSelect";
 export * from "./AsyncSaveButton";
 export * from "./AdminPageTitle";
+export * from "./MissingItemsBanner";
 export * from "./TestBed";
