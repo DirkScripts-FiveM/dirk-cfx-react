@@ -10,6 +10,8 @@ export interface TestBedItem {
   onToggle: (next: boolean) => void;
 }
 
+export type TestBedPlacement = "top-left" | "top-center" | "top-right";
+
 export interface TestBedProps {
   items: TestBedItem[];
   /** localStorage key used to persist toggled state across reloads. Default: "testbed:open-state". */
@@ -18,7 +20,21 @@ export interface TestBedProps {
   disablePersistence?: boolean;
   /** Header label shown in the collapsed pill. Default: "TestBed". */
   title?: string;
+  /** Where to anchor the floating panel. Default: "top-left". */
+  placement?: TestBedPlacement;
 }
+
+const placementStyle = (placement: TestBedPlacement): React.CSSProperties => {
+  switch (placement) {
+    case "top-center":
+      return { top: "1vh", left: "50%", transform: "translateX(-50%)" };
+    case "top-right":
+      return { top: "1vh", right: "1vh" };
+    case "top-left":
+    default:
+      return { top: "1vh", left: "1vh" };
+  }
+};
 
 const loadPersistedState = (storageKey: string): Record<string, boolean> => {
   try {
@@ -40,6 +56,7 @@ export function TestBed({
   storageKey = "testbed:open-state",
   disablePersistence = false,
   title = "TestBed",
+  placement = "top-left",
 }: TestBedProps) {
   const [open, setOpen] = useState(false);
   const itemsRef = useRef(items);
@@ -73,8 +90,7 @@ export function TestBed({
     <div
       style={{
         position: "fixed",
-        top: "1vh",
-        left: "1vh",
+        ...placementStyle(placement),
         zIndex: 2147483647,
         pointerEvents: "auto",
         fontSize: "1.4vh",

@@ -511,8 +511,8 @@ function ConfigPanelInner<T extends Record<string, any>>({
             >
               <ArrowLeft size="1.4vh" color={color} />
             </motion.button>
-            <Flex direction="column" style={{ minWidth: 0, lineHeight: 1 }}>
-              <Text size="lg" ff="Akrobat Bold" tt="uppercase" lts="0.04em" truncate>{title}</Text>
+            <Flex direction="column" style={{ minWidth: 0, flex: 1, lineHeight: 1, overflow: "hidden" }}>
+              <Text size="md" ff="Akrobat Bold" tt="uppercase" lts="0.04em" truncate>{title}</Text>
               {subtitle && (
                 <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.08em" c={color} truncate>
                   {subtitle}

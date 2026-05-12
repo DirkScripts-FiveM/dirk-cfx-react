@@ -28,9 +28,30 @@ export async function fetchNui<T = unknown>(
 
   const overrideResourceName = useSettings.getState().overideResourceName;
 
+  // Resource-name resolution:
+  //   1. NUI iframes expose `window.GetParentResourceName` — use that.
+  //   2. DUIs don't have it, but DirkProvider sets `overideResourceName`
+  //      once it mounts, so consumer DUIs that wait until then resolve fine.
+  //   3. If NEITHER is available (e.g. a DUI before its DirkProvider has
+  //      mounted, which happens for module-level `registerInitialFetch`
+  //      calls in `locales.ts`), there's no valid resource to call. Skip
+  //      the fetch entirely — firing it against a placeholder URL just
+  //      produces a doomed network request + an "Uncaught (in promise)
+  //      TypeError: Failed to fetch" in older consumer builds that
+  //      lacked the try/catch fallback below. Caller can rely on the
+  //      mockData return or refetch once context is established.
+  const hasResourceContext =
+    typeof (window as any).GetParentResourceName === "function" ||
+    !!overrideResourceName;
+
+  if (!hasResourceContext) {
+    return (mockData ?? ({} as T));
+  }
+
   const resourceName = (window as any).GetParentResourceName
     ? (window as any).GetParentResourceName()
-    : overrideResourceName ? overrideResourceName : "dirk-cfx-react";
+    : overrideResourceName as string;
+
   try {
     const resp = await fetch(`https://${resourceName}/${eventName}`, options);
     return await resp.json();
