@@ -25,3 +25,4 @@ export * from "./AsyncSaveButton";
 export * from "./AdminPageTitle";
 export * from "./MissingItemsBanner";
 export * from "./TestBed";
+export * from "./ThemeOverrideSection";

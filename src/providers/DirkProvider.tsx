@@ -70,8 +70,21 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
   // changes appearance/localization via the scriptConfig UI. Merge the partial
   // patch into the settings store so theme / currency / branding update live
   // without a resource restart.
+  //
+  // Per-resource theme override gate: when the local snapshot has
+  // `themeOverride: true`, the consumer's GET_SETTINGS callback has already
+  // hydrated us with its own primaryColor / primaryShade / customTheme. Any
+  // incoming global push for those keys is silently dropped so editing the
+  // dirk_lib appearance tab doesn't clobber the resource's local theme.
   useNuiEvent<Partial<SettingsState>>('UPDATE_DIRK_LIB_SETTINGS', (data) => {
     if (!data || typeof data !== 'object') return;
+    const current = useSettings.getState();
+    if (current.themeOverride) {
+      const { primaryColor: _pc, primaryShade: _ps, customTheme: _ct, ...rest } = data;
+      void _pc; void _ps; void _ct;
+      useSettings.setState(rest);
+      return;
+    }
     useSettings.setState(data);
   });
 

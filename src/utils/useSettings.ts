@@ -13,6 +13,11 @@ export type SettingsState = {
   serverName?: string;
   logo?: string;
   language?: string;
+  // When true, the resource has its own theme defined in scriptConfig and
+  // global dirk_lib UPDATE_DIRK_LIB_SETTINGS pushes must not clobber the
+  // local primaryColor / primaryShade / customTheme. The consumer's
+  // GET_SETTINGS callback is responsible for setting this flag.
+  themeOverride?: boolean;
 };
 
 export const useSettings = create<SettingsState>(() => ({

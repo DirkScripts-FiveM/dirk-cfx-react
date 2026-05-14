@@ -444,7 +444,26 @@ function ConfigPanelInner<T extends Record<string, any>>({
               if (result?.success) {
                 const { store } = getScriptConfigInstance<T>();
                 form.reinitialize(cloneConfig(store.getState()));
+                // Mirror the save-success toast so the admin gets visible
+                // feedback that the reset actually applied — previously the
+                // modal just closed silently and admins had no way to tell
+                // whether it had worked.
+                notifications.show({
+                  color: "green",
+                  title: locale("ConfigResetSuccessTitle"),
+                  message: locale("ConfigResetSuccessBody"),
+                  autoClose: 3000,
+                });
+                return;
               }
+              const err = result?._error || "Unknown";
+              console.warn(`[ConfigPanel] config reset failed: ${err}`);
+              notifications.show({
+                color: "red",
+                title: locale("ConfigResetFailedTitle"),
+                message: locale("ConfigResetFailedBody", err),
+                autoClose: 6000,
+              });
             }}
             onClose={() => setResetOpen(false)}
             zIndex={300}
