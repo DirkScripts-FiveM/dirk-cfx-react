@@ -37,6 +37,7 @@ import { useState } from "react";
 import { useFormActions, useFormField } from "@/hooks/useForm";
 import { locale } from "@/utils/locales";
 import { AdminPageTitle } from "./AdminPageTitle";
+import { SwitchPanel } from "./SwitchPanel";
 
 const MANTINE_COLOR_OPTIONS = [
   "dirk",
@@ -168,33 +169,17 @@ export function ThemeOverrideSection({
 
       {/* Master toggle — flipping this off resets the resource to follow the
           global dirk_lib theme. The saved palette is preserved so re-enabling
-          doesn't lose work. */}
-      <Flex
-        align="center"
-        justify="space-between"
-        p="xs"
-        style={{
-          background: `rgba(255,255,255,${editable ? 0.04 : 0.02})`,
-          border: `0.1vh solid ${editable ? color : "rgba(255,255,255,0.08)"}`,
-          borderRadius: mantineTheme.radius.xs,
-          transition: "background 0.15s, border-color 0.15s",
-        }}
-      >
-        <Flex direction="column" gap="xxs" style={{ flex: 1, minWidth: 0 }}>
-          <Text ff="Akrobat Bold" size="xs" c="rgba(255,255,255,0.9)">
-            {locale("OverrideGlobalTheme") || "Override global theme"}
-          </Text>
-          <Text ff="Akrobat Bold" size="xxs" c="rgba(255,255,255,0.4)">
-            {locale("OverrideGlobalThemeDesc") ||
-              "When on, this resource uses its own primary colour and palette instead of dirk_lib's. Turn off to fall back to the global theme — your custom palette is kept."}
-          </Text>
-        </Flex>
-        <Switch
-          size="md"
-          checked={value.useOverride}
-          onChange={(e) => set("useOverride", e.currentTarget.checked)}
-        />
-      </Flex>
+          doesn't lose work. Uses the shared SwitchPanel so the outline + Switch
+          styling match every other configurator section. */}
+      <SwitchPanel
+        label={locale("OverrideGlobalTheme") || "Override global theme"}
+        description={
+          locale("OverrideGlobalThemeDesc") ||
+          "When on, this resource uses its own primary colour and palette instead of dirk_lib's. Turn off to fall back to the global theme — your custom palette is kept."
+        }
+        checked={value.useOverride}
+        onChange={(v) => set("useOverride", v)}
+      />
 
       <div
         style={{
