@@ -55,6 +55,11 @@ if (typeof window !== "undefined") {
     const msg = event.data;
     if (!msg || msg.action !== "UPDATE_DIRK_LIB_LOCALES") return;
     if (!msg.data || typeof msg.data !== "object") return;
+    // Defensive: never overwrite a populated dict with an empty one. dirk_lib
+    // and consumer dui.lua listeners can both fire mid-table.wipe/repopulate
+    // inside lib.locale(), and a stray {} broadcast would silently snap the
+    // whole NUI back to raw keys (e.g. "ModifyRod" instead of the translation).
+    if (Object.keys(msg.data).length === 0) return;
     localeStore.setState({ locales: msg.data as LocalesProps });
   });
 }

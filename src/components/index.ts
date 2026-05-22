@@ -29,3 +29,5 @@ export * from "./TestBed";
 export * from "./ThemeOverrideSection";
 export * from "./AnimPostFxSelect";
 export * from "./ScenarioSelect";
+export * from "./DiscordRoleSelect";
+export * from "./AccountSelect";
