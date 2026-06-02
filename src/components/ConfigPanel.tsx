@@ -14,6 +14,7 @@ import { Modal } from "./Modal";
 import { MissingItemsBanner, useMissingItemsAudit } from "./MissingItemsBanner";
 import { MotionFlex } from "./Motion";
 import { FormProvider, useForm, useFormActions } from "../hooks/useForm";
+import { useAdminState } from "../hooks/useAdminState";
 import { useSettings } from "../utils/useSettings";
 import { fetchNui } from "../utils/fetchNui";
 import { getScriptConfigInstance } from "../hooks/useScriptConfig";
@@ -394,7 +395,10 @@ function ConfigPanelInner<T extends Record<string, any>>({
   const theme = useMantineTheme();
   const color = theme.colors[theme.primaryColor][5];
   const version = useSettings((s) => s.resourceVersion);
-  const [activeTab, setActiveTab] = useState(navItems[0]?.id ?? "");
+  // useAdminState so the selected tab survives close/reopen. The whole
+  // ConfigPanel tree unmounts on close (line ~670: `if (!open) return null`),
+  // so plain useState would reset to navItems[0] every time.
+  const [activeTab, setActiveTab] = useAdminState("__dirkConfigPanel:activeTab", navItems[0]?.id ?? "");
   const firstMountRef = useRef(true);
   const [jsonOpen, setJsonOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);

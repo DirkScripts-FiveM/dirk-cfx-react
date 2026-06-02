@@ -393,7 +393,7 @@ const BLIP_ENTRIES: [number, string, string][] = [
 
 const BLIP_BASE = "https://docs.fivem.net/blips/";
 
-function blipUrl(name: string, ext: string) {
+export function blipUrl(name: string, ext: string) {
   return `${BLIP_BASE}${name}.${ext}`;
 }
 
@@ -433,6 +433,28 @@ const BLIP_COLOR_DATA: ComboboxItem[] = BLIP_COLORS.map(([id, label]) => ({
 // lookup maps for rendering
 const blipEntryMap = new Map(BLIP_ENTRIES.map(([id, name, ext]) => [String(id), { id, name, ext }]));
 const blipColorMap = new Map(BLIP_COLORS.map(([id, label, hex]) => [String(id), { id, label, hex }]));
+
+// ── Public lookups for any consumer wanting raw access (e.g. <BlipMarker>
+// in cfx-react's Map subsystem). Wrappers around the internal maps that
+// take a number/string id and normalise it to the string-keyed lookup.
+
+/** Look up a blip entry by sprite id. Returns `{ id, name, ext }` or undefined. */
+export function getBlipEntry(spriteId: number | string | null | undefined) {
+  if (spriteId == null) return undefined;
+  return blipEntryMap.get(String(spriteId));
+}
+
+/** Look up a blip color by color id. Returns `{ id, label, hex }` or undefined. */
+export function getBlipColor(colorId: number | string | null | undefined) {
+  if (colorId == null) return undefined;
+  return blipColorMap.get(String(colorId));
+}
+
+/** Convenience: build the sprite URL straight from a sprite id. */
+export function blipUrlForSprite(spriteId: number | string | null | undefined): string | null {
+  const entry = getBlipEntry(spriteId);
+  return entry ? blipUrl(entry.name, entry.ext) : null;
+}
 
 // ── Render helpers ─────────────────────────────────────────────────────────
 

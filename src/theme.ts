@@ -1,4 +1,4 @@
-import { ColorInput, createTheme, MantineTheme, MultiSelect, NumberInput, TextInput } from "@mantine/core";
+import { alpha, ColorInput, createTheme, MantineTheme, MultiSelect, NumberInput, TextInput } from "@mantine/core";
 
 export const label = {
   fontSize: 'var(--mantine-font-size-xs)',
@@ -117,6 +117,26 @@ const theme = createTheme({
           paddingTop: '0.5vh',
         }
       })
+    },
+
+    // Mantine's <Tooltip> defaults to a white card with black text — looks
+    // jarring against every dirk consumer's dark configurator. Every script
+    // used to hand-paste this dark style block per Tooltip; centralised here
+    // so consumers get the right look automatically and never need to think
+    // about it again.
+    Tooltip: {
+      styles: (theme: MantineTheme) => ({
+        tooltip: {
+          background: alpha(theme.colors.dark[7], 0.95),
+          border: '0.1vh solid rgba(255,255,255,0.1)',
+          color: 'rgba(255,255,255,0.75)',
+          fontFamily: 'Akrobat Bold',
+          fontSize: '1.3vh',
+          lineHeight: 1.3,
+          padding: '0.6vh 0.8vh',
+          letterSpacing: '0.03em',
+        },
+      }),
     },
 
   },

@@ -25,6 +25,7 @@ import { mergeMantineThemeSafe } from "@/utils/mergeMantineTheme";
 import { SettingsState, useSettings } from "@/utils/useSettings";
 import { getScriptConfigInstance } from "@/hooks/useScriptConfig";
 import { DirkErrorBoundary } from "./DirkErrorBoundary";
+import { AdminOverlays } from "@/components/AdminTools/AdminOverlays";
 
 export type DirkProviderProps = {
   children: React.ReactNode;
@@ -198,6 +199,11 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
       <MantineProvider theme={mergedTheme} defaultColorScheme="dark">
         <DirkErrorBoundary>
             {content}
+            {/* Auto-mounted. Renders nothing unless an admin tool is active.
+                Consumers never have to wire this up themselves — every admin
+                tool flow that uses useAdminToolStore.begin() gets the
+                bottom-right InstructionPanel + NUI message routing for free. */}
+            <AdminOverlays />
         </DirkErrorBoundary>
       </MantineProvider>
   );
