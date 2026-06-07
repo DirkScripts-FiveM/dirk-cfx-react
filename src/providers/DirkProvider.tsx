@@ -26,6 +26,22 @@ import { SettingsState, useSettings } from "@/utils/useSettings";
 import { getScriptConfigInstance } from "@/hooks/useScriptConfig";
 import { DirkErrorBoundary } from "./DirkErrorBoundary";
 import { AdminOverlays } from "@/components/AdminTools/AdminOverlays";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Shared QueryClient for every consumer of <DirkProvider>. Hooks in this
+// library (usePlayers, ConfigPanel's history pagination, MissingItemsBanner
+// audit, etc.) all consume this so consumers don't need to wire their own
+// QueryClientProvider. Defaults match what ConfigPanel previously used in
+// its private QueryClient so the move doesn't change refetch cadence.
+//
+// Consumers that already wrap in their own outer QueryClientProvider (e.g.
+// dirk_fishing's App.tsx) still work — react-query picks the nearest
+// provider in the tree, and "nearest" here means this inner one. Anything
+// inside DirkProvider uses this client; anything outside uses the consumer's
+// outer one (if present).
+export const dirkQueryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, gcTime: 5 * 60_000 } },
+});
 
 export type DirkProviderProps = {
   children: React.ReactNode;
@@ -196,15 +212,17 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
   );
 
   return (
-      <MantineProvider theme={mergedTheme} defaultColorScheme="dark">
-        <DirkErrorBoundary>
-            {content}
-            {/* Auto-mounted. Renders nothing unless an admin tool is active.
-                Consumers never have to wire this up themselves — every admin
-                tool flow that uses useAdminToolStore.begin() gets the
-                bottom-right InstructionPanel + NUI message routing for free. */}
-            <AdminOverlays />
-        </DirkErrorBoundary>
-      </MantineProvider>
+      <QueryClientProvider client={dirkQueryClient}>
+        <MantineProvider theme={mergedTheme} defaultColorScheme="dark">
+          <DirkErrorBoundary>
+              {content}
+              {/* Auto-mounted. Renders nothing unless an admin tool is active.
+                  Consumers never have to wire this up themselves — every admin
+                  tool flow that uses useAdminToolStore.begin() gets the
+                  bottom-right InstructionPanel + NUI message routing for free. */}
+              <AdminOverlays />
+          </DirkErrorBoundary>
+        </MantineProvider>
+      </QueryClientProvider>
   );
 }

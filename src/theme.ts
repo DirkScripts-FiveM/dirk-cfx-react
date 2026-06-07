@@ -95,10 +95,44 @@ const theme = createTheme({
     TextInput: genericInputStyles,
     NumberInput: genericInputStyles,
     Select: genericInputStyles,
-    MultiSelect:  genericInputStyles, 
+    MultiSelect:  genericInputStyles,
     Textarea: genericInputStyles,
     ColorInput: genericInputStyles,
     DateInput: genericInputStyles,
+
+    // Mantine's <Button> defaults to rem-based heights (xs ≈ 1.875rem)
+    // which doesn't match this theme's vh-based input min-heights, so
+    // `<Button size="xs">` rendered next to `<TextInput size="xs">` ends
+    // up visibly shorter. Pin the button heights to the same vh values
+    // the inputs use so xs-everything lines up out of the box.
+    Button: {
+      styles: {
+        label: {
+          fontFamily: 'Akrobat Bold',
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+        },
+        root: {
+          // Mantine maps these to --button-height per size; setting them
+          // directly here keeps native Button sizing logic intact.
+        },
+      },
+      vars: (_theme: MantineTheme, props: { size?: string }) => {
+        const heights: Record<string, string> = {
+          xs: '4vh',
+          sm: '4.5vh',
+          md: '5vh',
+          lg: '5.5vh',
+          xl: '6vh',
+        };
+        const h = heights[props.size ?? 'sm'] ?? '4.5vh';
+        return {
+          root: {
+            '--button-height': h,
+          },
+        };
+      },
+    },
 
     Pill: {
       styles: (theme: MantineTheme) => ({

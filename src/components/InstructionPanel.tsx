@@ -168,13 +168,45 @@ export function InstructionPanel({
   );
 }
 
+// Specials: when the consumer passes 'LMB' / 'RMB' / 'BACKSPACE' / '⌫' as
+// the key label, render an icon instead of plain text so the cap reads at
+// a glance. Anything else falls through to text rendering with extra
+// horizontal padding so long labels like 'ESC' / 'TAB' don't look cramped.
+function renderKeyContent(keyLabel: string): React.ReactNode {
+  const normalized = keyLabel.trim().toUpperCase();
+  if (normalized === "LMB") return <MouseIcon side="left" />;
+  if (normalized === "RMB") return <MouseIcon side="right" />;
+  if (normalized === "BACKSPACE" || keyLabel === "⌫") return <BackspaceIcon />;
+  return (
+    <Text
+      style={{
+        fontFamily: "Akrobat Bold, sans-serif",
+        fontSize: "1.2vh",
+        color: "rgba(255,255,255,0.85)",
+        lineHeight: 1,
+        padding: "0 0.3vh",
+      }}
+    >
+      {keyLabel}
+    </Text>
+  );
+}
+
 function InstructionKeyRow({ keyLabel, action }: { keyLabel: string; action: string }) {
+  // Special icon labels read better on a slightly wider cap (the mouse
+  // glyph is wider than a letter). Text-only caps stay square.
+  const normalized = keyLabel.trim().toUpperCase();
+  const isIconKey = normalized === "LMB" || normalized === "RMB"
+    || normalized === "BACKSPACE" || keyLabel === "⌫";
+  const minWidth = isIconKey ? "2.6vh" : "2.4vh";
+
   return (
     <Flex align="center" gap="0.6vh">
       <div
         style={{
-          width: "2.2vh",
-          height: "2.2vh",
+          minWidth,
+          height: "2.4vh",
+          padding: "0 0.4vh",
           borderRadius: "0.3vh",
           border: "0.15vh solid rgba(255,255,255,0.35)",
           background: "rgba(255,255,255,0.06)",
@@ -184,18 +216,10 @@ function InstructionKeyRow({ keyLabel, action }: { keyLabel: string; action: str
           opacity: 0.85,
           filter: "drop-shadow(0 0 0.3vh rgba(0,0,0,0.5))",
           flexShrink: 0,
+          boxSizing: "border-box",
         }}
       >
-        <Text
-          style={{
-            fontFamily: "Akrobat Bold, sans-serif",
-            fontSize: "1.2vh",
-            color: "rgba(255,255,255,0.85)",
-            lineHeight: 1,
-          }}
-        >
-          {keyLabel}
-        </Text>
+        {renderKeyContent(keyLabel)}
       </div>
       <Text
         style={{
@@ -209,5 +233,45 @@ function InstructionKeyRow({ keyLabel, action }: { keyLabel: string; action: str
         {action}
       </Text>
     </Flex>
+  );
+}
+
+// Inline mouse-body SVG with one half highlighted. Matches the visual
+// convention of left/right click hints used elsewhere in the dirk UIs
+// (e.g. dirk_fishing's DUI rod indicator).
+function MouseIcon({ side }: { side: "left" | "right" }) {
+  const stroke = "rgba(255,255,255,0.85)";
+  const fillActive = "rgba(255,255,255,0.85)";
+  return (
+    <svg viewBox="0 0 16 22" width="1.4vh" height="1.9vh" fill="none" stroke={stroke} strokeWidth="1.4" strokeLinejoin="round">
+      {/* Mouse body */}
+      <rect x="1" y="1" width="14" height="20" rx="6" />
+      {/* Centre divider */}
+      <line x1="8" y1="1" x2="8" y2="9" />
+      {/* Highlighted button — fill the left or right top quadrant */}
+      <path
+        d={
+          side === "left"
+            ? "M 7.4 1.6 L 2 1.6 A 5 5 0 0 0 1 6 L 1 9 L 7.4 9 Z"
+            : "M 8.6 1.6 L 14 1.6 A 5 5 0 0 1 15 6 L 15 9 L 8.6 9 Z"
+        }
+        fill={fillActive}
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
+function BackspaceIcon() {
+  // Backspace key shape (chevron pointing left into a tag). Matches the
+  // shape of a physical Backspace key on a US layout. Plain SVG so it
+  // ships without an asset file.
+  const stroke = "rgba(255,255,255,0.85)";
+  return (
+    <svg viewBox="0 0 22 16" width="1.7vh" height="1.3vh" fill="none" stroke={stroke} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M 21 2 L 8 2 L 2 8 L 8 14 L 21 14 Z" />
+      <line x1="11" y1="6" x2="16" y2="11" />
+      <line x1="16" y1="6" x2="11" y2="11" />
+    </svg>
   );
 }

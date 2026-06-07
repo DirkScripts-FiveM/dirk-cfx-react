@@ -1,6 +1,6 @@
 import { alpha, Box, Flex, JsonInput, Loader, Text, TextInput, useMantineTheme } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useInfiniteQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { locale } from "../utils/locales";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -16,6 +16,7 @@ import { MotionFlex } from "./Motion";
 import { FormProvider, useForm, useFormActions } from "../hooks/useForm";
 import { useAdminState } from "../hooks/useAdminState";
 import { useSettings } from "../utils/useSettings";
+import { dirkQueryClient } from "../providers/DirkProvider";
 import { fetchNui } from "../utils/fetchNui";
 import { getScriptConfigInstance } from "../hooks/useScriptConfig";
 import type {
@@ -53,12 +54,6 @@ export interface ConfigPanelProps<T extends Record<string, any> = Record<string,
       nothing visually. */
   suppressMissingItemsBanner?: boolean;
 }
-
-// ── Internal query client ─────────────────────────────────────────────────────
-
-const configPanelQueryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, gcTime: 5 * 60_000 } },
-});
 
 // ── NavItem Button ────────────────────────────────────────────────────────────
 
@@ -673,8 +668,11 @@ export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelPro
 
   if (!open) return null;
 
+  // No internal QueryClientProvider — DirkProvider now mounts a shared
+  // client (dirkQueryClient) that this component, the missing-items audit,
+  // usePlayers etc. all consume. Invalidations below use the same client.
   return (
-    <QueryClientProvider client={configPanelQueryClient}>
+    <>
       <FormProvider<T>
         initialValues={cloneConfig(store.getState())}
         onSubmit={async (form) => {
@@ -684,7 +682,7 @@ export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelPro
             const result: any = await updateConfig(form.values as T);
             if (result?.success) {
               form.reinitialize(cloneConfig(form.values as T));
-              configPanelQueryClient.invalidateQueries({ queryKey: ["scriptConfigHistory"] });
+              dirkQueryClient.invalidateQueries({ queryKey: ["scriptConfigHistory"] });
               // Re-run the missing-items audit since item-name fields might
               // have changed in this save. One-shot per save — not an event
               // listener loop, no spam.
@@ -733,6 +731,6 @@ export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelPro
           )}
         </AnimatePresence>
       </FormProvider>
-    </QueryClientProvider>
+    </>
   );
 }

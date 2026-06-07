@@ -33,6 +33,8 @@ export * from "./DiscordRoleSelect";
 export * from "./AccountSelect";
 export * from "./InstructionPanel";
 export * from "./AdminTools/WorldPositionPicker";
+export * from "./AdminTools/PlayerSelect";
+export * from "./AdminTools/DoorPicker";
 export * from "./Map/Map";
 export * from "./Map/BlipMarker";
 export { useAdminToolStore } from "./AdminTools/adminToolStore";

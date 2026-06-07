@@ -5,3 +5,4 @@ export * from "./useTornEdges";
 export * from "./useScriptConfig";
 export * from "./useValidModels";
 export * from "./useAdminState";
+export * from "./usePlayers";
