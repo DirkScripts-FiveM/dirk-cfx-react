@@ -64,16 +64,19 @@ function WorldPositionSetButton({
     // Order matters: register the resolver in the store FIRST so it's ready
     // by the time Lua fires back the result, THEN kick off the Lua flow,
     // THEN await the eventual resolution.
-    const pendingResult = begin<Vector4Value>({
-      id: "capturePosition",
+    const instructions = {
       title: locale("PickPositionTitle") || "Pick Position",
       hint: locale("PickPositionHint") || "Walk to where you want this set",
       keys: [
         { key: "E", action: locale("Set") || "Set" },
         { key: "⌫", action: locale("Cancel") || "Cancel" },
       ],
-    });
-    fetchNui("ADMIN_TOOL_BEGIN", { id: "capturePosition" }).catch(() => {
+    };
+    const pendingResult = begin<Vector4Value>({ id: "capturePosition", ...instructions });
+    // `instructions` goes in the fetchNui payload so the Lua handler can
+    // drive lib.showInstructions itself — the bottom-right panel renders
+    // from dirk_lib's NUI, not from React.
+    fetchNui("ADMIN_TOOL_BEGIN", { id: "capturePosition", instructions }).catch(() => {
       // If the NUI bridge fails, cancel the store entry so we don't leak.
       useAdminToolStore.getState().cancelActive();
     });

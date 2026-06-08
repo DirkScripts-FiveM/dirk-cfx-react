@@ -37,6 +37,9 @@ import { useAdminToolStore } from "./adminToolStore";
 export type PickedDoor = {
   /** Door entity model hash. */
   model: number;
+  /** Resolved model name (e.g. 'v_ilev_meth_loaddoor'). nil when the
+   *  hash isn't in dirk_lib's lookup table (custom prop, MLO asset). */
+  modelName?: string | null;
   /** World coords of the door entity, snapshotted at pick time. */
   coords: { x: number; y: number; z: number };
   /** Door entity heading in degrees. */
