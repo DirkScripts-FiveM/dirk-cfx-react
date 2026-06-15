@@ -15,9 +15,10 @@
 // from context and lists that group's grades. Throws when used outside.
 
 import { Select } from "@mantine/core";
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import {
   FrameworkGroup,
+  ensureFrameworkGroups,
   selectAllGroups,
   useFrameworkGroups,
 } from "../utils/useFrameworkGroups";
@@ -102,6 +103,13 @@ export function GroupName(props: GroupNameProps) {
   const jobs = useFrameworkGroups((s) => s.jobs);
   const gangs = useFrameworkGroups((s) => s.gangs);
 
+  // Lazily pull jobs/gangs the first time a picker mounts (once process-wide,
+  // guarded inside ensureFrameworkGroups). Replaces the old eager module-load
+  // fetch that every consumer NUI ran whether or not a picker was ever shown.
+  useEffect(() => {
+    ensureFrameworkGroups();
+  }, []);
+
   const inCompound = ctx !== null;
   const currentValue = inCompound ? ctx!.value.name : props.value;
   const filterType = inCompound ? ctx!.type : props.type;
@@ -162,6 +170,12 @@ export function GroupRank(props: GroupRankProps) {
   }
   const jobs = useFrameworkGroups((s) => s.jobs);
   const gangs = useFrameworkGroups((s) => s.gangs);
+
+  // Defensive: ensure groups are fetched even if GroupRank renders without a
+  // GroupName sibling. No-op after the first call (guarded).
+  useEffect(() => {
+    ensureFrameworkGroups();
+  }, []);
 
   const all = [...jobs, ...gangs];
   const selectedGroup = all.find((g) => g.name === ctx.value.name) ?? null;
