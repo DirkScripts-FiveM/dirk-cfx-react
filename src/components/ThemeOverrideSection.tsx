@@ -36,8 +36,18 @@ import { Palette, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useFormActions, useFormField } from "@/hooks/useForm";
 import { locale } from "@/utils/locales";
+import {
+  DEFAULT_PALETTE,
+  defaultThemeOverride as DEFAULT_VALUE,
+  type ThemeOverrideValue,
+} from "@/types/theme";
 import { AdminPageTitle } from "./AdminPageTitle";
 import { SwitchPanel } from "./SwitchPanel";
+
+// NOTE: `ThemeOverrideValue` is intentionally NOT re-exported here anymore — it
+// now lives in `@/types/theme` (single source of truth, shared with
+// useSettings) and is surfaced via the top-level `types` barrel. Re-exporting
+// it from this module too would create an ambiguous `export *` at src/index.ts.
 
 const MANTINE_COLOR_OPTIONS = [
   "dirk",
@@ -54,33 +64,6 @@ const MANTINE_COLOR_OPTIONS = [
   "yellow",
   "orange",
 ].map((value) => ({ value, label: value }));
-
-export type ThemeOverrideValue = {
-  useOverride: boolean;
-  primaryColor: string;
-  primaryShade: number;
-  customTheme: string[];
-};
-
-const DEFAULT_PALETTE: string[] = [
-  "#f0f4ff",
-  "#d9e3ff",
-  "#bfcfff",
-  "#a6bbff",
-  "#8ca7ff",
-  "#7393ff",
-  "#5a7fff",
-  "#406bff",
-  "#2547ff",
-  "#0b33ff",
-];
-
-const DEFAULT_VALUE: ThemeOverrideValue = {
-  useOverride: false,
-  primaryColor: "dirk",
-  primaryShade: 5,
-  customTheme: DEFAULT_PALETTE,
-};
 
 function GroupLabel({ label }: { label: string }) {
   return (

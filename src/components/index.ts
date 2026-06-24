@@ -27,6 +27,7 @@ export * from "./SwitchPanel";
 export * from "./MissingItemsBanner";
 export * from "./TestBed";
 export * from "./ThemeOverrideSection";
+export * from "./AccessOverrideSection";
 export * from "./AnimPostFxSelect";
 export * from "./ScenarioSelect";
 export * from "./DiscordRoleSelect";

@@ -145,7 +145,7 @@ function ConfigJsonModal<T extends Record<string, any>>({
   };
 
   return (
-    <Modal title="Config JSON" icon={Code2} iconColor={color} onClose={onClose} width="60vh" maxHeight="80vh" zIndex={200}>
+    <Modal title={locale("cfgpanel_json_title")} icon={Code2} iconColor={color} onClose={onClose} width="60vh" maxHeight="80vh" zIndex={200}>
       <Box flex={1} p="0.8vh" style={{ overflowY: "auto" }}>
         <JsonInput
           value={json}
@@ -164,12 +164,12 @@ function ConfigJsonModal<T extends Record<string, any>>({
         <motion.button onClick={onClose} whileHover={{ background: alpha(theme.colors.dark[7], 0.5) }} whileTap={{ scale: 0.97 }}
           style={{ background: "transparent", border: `0.1vh solid ${theme.colors.dark[6]}`, borderRadius: theme.radius.xs, padding: `${theme.spacing.xxs} ${theme.spacing.xs}`, cursor: "pointer", display: "flex", alignItems: "center", gap: theme.spacing.xxs }}>
           <X color="rgba(255,255,255,0.4)" />
-          <Text ff="Akrobat Bold" size="xs" tt="uppercase" lts="0.05em" c="rgba(255,255,255,0.4)">Cancel</Text>
+          <Text ff="Akrobat Bold" size="xs" tt="uppercase" lts="0.05em" c="rgba(255,255,255,0.4)">{locale("cfgpanel_cancel")}</Text>
         </motion.button>
         <motion.button onClick={handleSave} whileHover={{ background: alpha(color, 0.25) }} whileTap={{ scale: 0.97 }}
           style={{ background: alpha(color, 0.14), border: `0.1vh solid ${alpha(color, 0.4)}`, borderRadius: theme.radius.xs, padding: `${theme.spacing.xxs} ${theme.spacing.xs}`, cursor: "pointer", display: "flex", alignItems: "center", gap: theme.spacing.xxs }}>
           <Check color={color} />
-          <Text ff="Akrobat Bold" size="xs" tt="uppercase" lts="0.05em" c={color}>Apply</Text>
+          <Text ff="Akrobat Bold" size="xs" tt="uppercase" lts="0.05em" c={color}>{locale("cfgpanel_apply")}</Text>
         </motion.button>
       </Flex>
     </Modal>
@@ -333,7 +333,7 @@ function ConfigHistoryModal({
   };
 
   return (
-    <Modal title="Config History" icon={History} iconColor={color} onClose={onClose} width="88vh" maxHeight="82vh" zIndex={260}>
+    <Modal title={locale("cfgpanel_history_title")} icon={History} iconColor={color} onClose={onClose} width="88vh" maxHeight="82vh" zIndex={260}>
       <Flex direction="column" style={{ flex: 1, minHeight: 0 }}>
         <Flex gap="xs" p="sm" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[7], 0.8)}` }}>
           <TextInput leftSection={<Search size="1.4vh" />} placeholder="Search path/admin/value" value={queryInput} onChange={(e) => setQueryInput(e.currentTarget.value)} size="xs" style={{ flex: 1 }} />
@@ -371,7 +371,7 @@ function ConfigHistoryModal({
         <motion.button onClick={onClose} whileHover={{ background: alpha(theme.colors.dark[7], 0.5) }} whileTap={{ scale: 0.97 }}
           style={{ background: "transparent", border: `0.1vh solid ${theme.colors.dark[6]}`, borderRadius: theme.radius.xs, padding: `${theme.spacing.xxs} ${theme.spacing.xs}`, cursor: "pointer", display: "flex", alignItems: "center", gap: theme.spacing.xxs }}>
           <X color="rgba(255,255,255,0.4)" size="1.5vh" />
-          <Text ff="Akrobat Bold" size="xs" tt="uppercase" lts="0.05em" c="rgba(255,255,255,0.4)">Close</Text>
+          <Text ff="Akrobat Bold" size="xs" tt="uppercase" lts="0.05em" c="rgba(255,255,255,0.4)">{locale("cfgpanel_close")}</Text>
         </motion.button>
       </Flex>
     </Modal>
@@ -433,9 +433,9 @@ function ConfigPanelInner<T extends Record<string, any>>({
       <AnimatePresence>
         {resetOpen && (
           <ConfirmModal
-            title="Reset to Defaults"
-            description="This will permanently reset ALL config back to the defaults. Every value you have configured will be overwritten. This cannot be undone."
-            confirmLabel="Reset Config"
+            title={locale("cfgpanel_reset_title")}
+            description={locale("cfgpanel_reset_desc")}
+            confirmLabel={locale("cfgpanel_reset_confirm")}
             confirmText={resetConfirmText}
             onConfirm={async () => {
               setResetOpen(false);
@@ -472,13 +472,13 @@ function ConfigPanelInner<T extends Record<string, any>>({
       <AnimatePresence>
         {pendingAction !== null && (
           <ConfirmModal
-            title="Discard Unsaved Changes?"
+            title={locale("cfgpanel_discard_title")}
             description={
               pendingAction === "back"
-                ? "You have unsaved changes. Going back now will discard them."
-                : "You have unsaved changes. Closing now will discard them."
+                ? locale("cfgpanel_discard_desc_back")
+                : locale("cfgpanel_discard_desc_close")
             }
-            confirmLabel={pendingAction === "back" ? "Go Back Without Saving" : "Close Without Saving"}
+            confirmLabel={pendingAction === "back" ? locale("cfgpanel_discard_confirm_back") : locale("cfgpanel_discard_confirm_close")}
             onConfirm={() => {
               const action = pendingAction;
               setPendingAction(null);
@@ -510,7 +510,7 @@ function ConfigPanelInner<T extends Record<string, any>>({
         <Flex direction="column" style={{ width: "18vh", flexShrink: 0, borderRight: `0.1vh solid ${alpha(theme.colors.dark[6], 0.8)}`, background: alpha(theme.colors.dark[8], 0.6), overflow: "hidden" }}>
           <Flex align="center" gap="0.6vh" px="sm" py="sm" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[6], 0.5)}`, flexShrink: 0 }}>
             <motion.button
-              title="Back to script list"
+              title={locale("cfgpanel_back_title")}
               onClick={handleBack}
               whileHover={{ background: alpha(color, 0.16), borderColor: alpha(color, 0.45) }}
               whileTap={{ scale: 0.95 }}
@@ -541,26 +541,26 @@ function ConfigPanelInner<T extends Record<string, any>>({
 
           {/* Quick controls */}
           <Flex gap="xxs" px="xs" py="xs" style={{ borderBottom: `0.1vh solid ${alpha(theme.colors.dark[6], 0.4)}`, flexShrink: 0 }}>
-            <motion.button title="Undo" onClick={() => form.canBack && form.back()} disabled={!form.canBack}
+            <motion.button title={locale("cfgpanel_undo")} onClick={() => form.canBack && form.back()} disabled={!form.canBack}
               whileHover={form.canBack ? { background: "rgba(255,255,255,0.07)" } : undefined}
               whileTap={form.canBack ? { scale: 0.97 } : undefined}
               style={{ flex: 1, aspectRatio: "1 / 1", background: "transparent", border: `0.1vh solid ${alpha(theme.colors.dark[5], form.canBack ? 0.6 : 0.3)}`, borderRadius: theme.radius.xs, cursor: form.canBack ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", opacity: form.canBack ? 1 : 0.35, transition: "opacity 0.2s" }}>
               <Undo2 size="1.5vh" color="rgba(255,255,255,0.7)" />
             </motion.button>
-            <motion.button title="Redo" onClick={() => form.canForward && form.forward()} disabled={!form.canForward}
+            <motion.button title={locale("cfgpanel_redo")} onClick={() => form.canForward && form.forward()} disabled={!form.canForward}
               whileHover={form.canForward ? { background: "rgba(255,255,255,0.07)" } : undefined}
               whileTap={form.canForward ? { scale: 0.97 } : undefined}
               style={{ flex: 1, aspectRatio: "1 / 1", background: "transparent", border: `0.1vh solid ${alpha(theme.colors.dark[5], form.canForward ? 0.6 : 0.3)}`, borderRadius: theme.radius.xs, cursor: form.canForward ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", opacity: form.canForward ? 1 : 0.35, transition: "opacity 0.2s" }}>
               <Redo2 size="1.5vh" color="rgba(255,255,255,0.7)" />
             </motion.button>
-            <motion.button title={isSaving ? "Saving..." : isDirty ? `Save (${changedCount})` : "Save"}
+            <motion.button title={isSaving ? locale("cfgpanel_saving") : isDirty ? `${locale("cfgpanel_save")} (${changedCount})` : locale("cfgpanel_save")}
               onClick={() => isDirty && !isSaving && form.submit()} disabled={!isDirty || isSaving}
               whileHover={isDirty && !isSaving ? { background: alpha(color, 0.25), borderColor: alpha(color, 0.5) } : undefined}
               whileTap={isDirty && !isSaving ? { scale: 0.97 } : undefined}
               style={{ flex: 1, aspectRatio: "1 / 1", background: isDirty ? alpha(color, 0.14) : "transparent", border: `0.1vh solid ${isDirty ? alpha(color, 0.35) : alpha(theme.colors.dark[5], 0.3)}`, borderRadius: theme.radius.xs, cursor: isDirty && !isSaving ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", opacity: isDirty ? 1 : 0.35, transition: "opacity 0.2s, background 0.15s" }}>
               {isSaving ? <Loader size="1.5vh" color={color} type="dots" /> : <SaveIcon color={isDirty ? color : "rgba(255,255,255,0.35)"} size="1.5vh" />}
             </motion.button>
-            <motion.button title="History" onClick={() => setHistoryOpen(true)}
+            <motion.button title={locale("cfgpanel_history")} onClick={() => setHistoryOpen(true)}
               whileHover={{ background: alpha("#22d3ee", 0.16), borderColor: alpha("#22d3ee", 0.5) }}
               whileTap={{ scale: 0.97 }}
               style={{ flex: 1, aspectRatio: "1 / 1", background: alpha("#22d3ee", 0.07), border: `0.1vh solid ${alpha("#22d3ee", 0.25)}`, borderRadius: theme.radius.xs, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -582,7 +582,7 @@ function ConfigPanelInner<T extends Record<string, any>>({
               whileTap={isDirty ? { scale: 0.97 } : undefined}
               style={{ width: "100%", background: "transparent", border: `0.1vh solid ${isDirty ? alpha("#f97316", 0.35) : alpha(theme.colors.dark[5], 0.3)}`, borderRadius: theme.radius.xs, padding: "0.65vh 0.8vh", cursor: isDirty ? "pointer" : "default", display: "flex", alignItems: "center", gap: "0.55vh", opacity: isDirty ? 1 : 0.35, transition: "opacity 0.2s" }}>
               <XCircle color={isDirty ? "#f97316" : "rgba(255,255,255,0.35)"} size="1.6vh" />
-              <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c={isDirty ? "#f97316" : "rgba(255,255,255,0.35)"}>Discard</Text>
+              <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c={isDirty ? "#f97316" : "rgba(255,255,255,0.35)"}>{locale("cfgpanel_discard")}</Text>
             </motion.button>
 
             <div style={{ height: "0.05vh", background: "rgba(255,255,255,0.07)", margin: "0.1vh 0" }} />
@@ -592,7 +592,7 @@ function ConfigPanelInner<T extends Record<string, any>>({
               whileTap={{ scale: 0.97 }}
               style={{ width: "100%", background: alpha(color, 0.07), border: `0.1vh solid ${alpha(color, 0.28)}`, borderRadius: theme.radius.xs, padding: "0.65vh 0.8vh", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.55vh" }}>
               <Code2 color={color} size="1.6vh" />
-              <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c={color}>Manual Edit</Text>
+              <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c={color}>{locale("cfgpanel_manual_edit")}</Text>
             </motion.button>
 
             <motion.button onClick={() => setResetOpen(true)}
@@ -600,12 +600,12 @@ function ConfigPanelInner<T extends Record<string, any>>({
               whileTap={{ scale: 0.97 }}
               style={{ width: "100%", background: alpha("#ef4444", 0.07), border: `0.1vh solid ${alpha("#ef4444", 0.25)}`, borderRadius: theme.radius.xs, padding: "0.65vh 0.8vh", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.55vh" }}>
               <RotateCcw color="#ef4444" size="1.6vh" />
-              <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c="#ef4444">Reset Defaults</Text>
+              <Text ff="Akrobat Bold" size="xxs" tt="uppercase" lts="0.06em" c="#ef4444">{locale("cfgpanel_reset_defaults")}</Text>
             </motion.button>
 
             {version && (
               <Text size="0.95vh" c="dimmed" ta="center" style={{ letterSpacing: "0.04em", opacity: 0.8 }}>
-                Version {version}
+                {locale("cfgpanel_version")} {version}
               </Text>
             )}
           </Flex>

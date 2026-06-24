@@ -1,5 +1,6 @@
 import { MantineColorsTuple } from "@mantine/core";
 import { create } from "zustand";
+import { DEFAULT_PALETTE } from "../types/theme";
 
 export type SettingsState = {
   game: "fivem" | "rdr3";
@@ -22,18 +23,7 @@ export const useSettings = create<SettingsState>(() => ({
   primaryShade: 9,
   itemImgPath: "",
   resourceVersion: "dev",
-  customTheme: [
-    "#f0f4ff",
-    "#d9e3ff",
-    "#bfcfff",
-    "#a6bbff",
-    "#8ca7ff",
-    "#7393ff",
-    "#5a7fff",
-    "#406bff",
-    "#2547ff",
-    "#0b33ff",
-  ],
+  customTheme: DEFAULT_PALETTE as unknown as MantineColorsTuple,
 }));
 
 // registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
