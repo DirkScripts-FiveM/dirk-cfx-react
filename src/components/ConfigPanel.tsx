@@ -679,7 +679,12 @@ export function ConfigPanel<T extends Record<string, any>>(props: ConfigPanelPro
           if (isSaving) return;
           setIsSaving(true);
           try {
-            const result: any = await updateConfig(form.values as T);
+            // Pass the tracked changed-set (dotted paths) so updateConfig can
+            // send a SECTION-DELTA (only the changed top-level sections, each as
+            // its whole current value, with sectionReplace:true) instead of the
+            // entire client-visible config. Falls back to a full-send when the
+            // changed-set is empty (server then defaults to fullReplace).
+            const result: any = await updateConfig(form.values as T, form.changedFields);
             if (result?.success) {
               form.reinitialize(cloneConfig(form.values as T));
               dirkQueryClient.invalidateQueries({ queryKey: ["scriptConfigHistory"] });

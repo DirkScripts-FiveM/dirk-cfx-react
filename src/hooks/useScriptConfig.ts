@@ -55,11 +55,28 @@ type NuiResponse<T> = {
   meta?: ScriptConfigUpdateMeta<T>;
 };
 
+// Derive the set of changed TOP-LEVEL section keys from a useForm changed-set
+// of dotted paths (e.g. ["stores.0.name", "basic.weightUnit"] → {"stores","basic"}).
+// CONSERVATIVE by design: any changed path under section X marks the WHOLE
+// section X as changed, so the caller sends its full current value. This is what
+// lets deletions inside a section (a removed array element) propagate, because
+// the server/client overwrite the section wholesale rather than deep-merging.
+function changedTopLevelSections(changedFields?: readonly string[]): string[] {
+  if (!changedFields || changedFields.length === 0) return [];
+  const sections = new Set<string>();
+  for (const path of changedFields) {
+    if (typeof path !== "string" || path.length === 0) continue;
+    const dot = path.indexOf(".");
+    sections.add(dot === -1 ? path : path.slice(0, dot));
+  }
+  return Array.from(sections);
+}
+
 // ── Singleton registry ────────────────────────────────────────────────────────
 
 export interface ScriptConfigInstance<T = any> {
   store: { getState: () => T; setState: (partial: Partial<T> | ((prev: T) => T)) => void };
-  updateConfig: (newConfig: Partial<T>) => Promise<NuiResponse<T>>;
+  updateConfig: (newConfig: Partial<T>, changedFields?: readonly string[]) => Promise<NuiResponse<T>>;
   resetConfig: () => Promise<{ success: boolean; _error?: string }>;
   getHistory: (params?: ScriptConfigHistoryRequest) => Promise<ScriptConfigHistoryResponse>;
   fetchConfig: () => Promise<T | null>;
@@ -77,17 +94,27 @@ export function createScriptConfig<T>(defaultValue: T) {
   let clientVersion = 0;
 
   const useScriptConfigHooks = () => {
-    useNuiEvent<{ config?: Partial<T>; clientVersion?: number }>("UPDATE_SCRIPT_CONFIG", (data) => {
-      if (!data) return;
+    useNuiEvent<{ config?: Partial<T>; clientVersion?: number; sectionReplace?: boolean }>(
+      "UPDATE_SCRIPT_CONFIG",
+      (data) => {
+        if (!data) return;
 
-      if (typeof data.clientVersion === "number") {
-        clientVersion = data.clientVersion as number;
-      }
+        if (typeof data.clientVersion === "number") {
+          clientVersion = data.clientVersion as number;
+        }
 
-      if (data.config && typeof data.config === "object") {
-        store.setState((prev) => ({ ...prev, ...(data.config as Partial<T>) }));
+        if (data.config && typeof data.config === "object") {
+          // Both apply modes use the same top-level merge-by-replace:
+          //  - sectionReplace: `config` holds only the changed sections; spreading
+          //    them over `prev` wholesale-overwrites those keys and leaves every
+          //    other (unsent) section exactly as-is. We MUST NOT full-replace here
+          //    or the unsent sections would vanish from the UI.
+          //  - fullReplace / merge / initial: `config` holds the FULL config, so
+          //    the same spread effectively replaces every key.
+          store.setState((prev) => ({ ...prev, ...(data.config as Partial<T>) }));
+        }
       }
-    });
+    );
   };
 
   const fetchScriptConfig = async (): Promise<T | null> => {
@@ -108,13 +135,37 @@ export function createScriptConfig<T>(defaultValue: T) {
     return null;
   };
 
-  const updateScriptConfig = async (newConfig: Partial<T>): Promise<NuiResponse<T>> => {
+  // `changedFields` is the useForm tracked changed-set (dotted paths). When
+  // supplied AND it resolves to ≥1 top-level section, we send a SECTION-DELTA:
+  // only the changed sections, each as its WHOLE current value, with
+  // sectionReplace:true. The server/client then overwrite those keys wholesale
+  // (which is what lets deletions inside a section propagate). When omitted or
+  // empty, we fall back to the legacy full-send (server defaults to
+  // fullReplace=true when no `sectionReplace` flag is present).
+  const updateScriptConfig = async (
+    newConfig: Partial<T>,
+    changedFields?: readonly string[]
+  ): Promise<NuiResponse<T>> => {
     store.setState((prev) => ({ ...prev, ...newConfig }));
 
-    const response = await fetchNui<NuiResponse<T>>("UPDATE_SCRIPT_CONFIG", {
-      data: newConfig,
-      expectedVersion: clientVersion,
-    });
+    const sections = changedTopLevelSections(changedFields);
+
+    let payload: { data: Partial<T>; expectedVersion: number; sectionReplace?: boolean };
+    if (sections.length > 0) {
+      // Section-delta: flat object keyed by top-level section name → whole
+      // current section value (pulled from the just-applied store state so it
+      // reflects the user's edits, including deletions).
+      const current = store.getState() as Record<string, unknown>;
+      const delta: Record<string, unknown> = {};
+      for (const key of sections) delta[key] = current[key];
+      payload = { data: delta as Partial<T>, expectedVersion: clientVersion, sectionReplace: true };
+    } else {
+      // No changed-set provided (or nothing resolved) but the user explicitly
+      // saved → legacy full-send. No sectionReplace flag ⇒ server fullReplace.
+      payload = { data: newConfig, expectedVersion: clientVersion };
+    }
+
+    const response = await fetchNui<NuiResponse<T>>("UPDATE_SCRIPT_CONFIG", payload);
 
     if (response?.meta?.client_version != null) {
       clientVersion = response.meta.client_version as number;
