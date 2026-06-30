@@ -156,17 +156,15 @@ export function DirkProvider({ children, overideResourceName, themeOverride }: D
         });
       }
 
-      // Proactive hydration. The dirk_lib cold-start push that populates the
-      // scriptConfig store is timing-sensitive (may fire before the NUI
-      // iframe is ready). A single GET_FULL_SCRIPT_CONFIG round-trip on
-      // mount removes that race entirely — the server callback blocks until
-      // scriptConfig is hydrated, so the override block is guaranteed
-      // populated before the first paint that depends on it.
-      inst.fetchConfig?.().then((full) => {
-        if (full && typeof full === 'object') {
-          setScTheme((full as { theme?: ScriptConfigThemeOverride }).theme ?? null);
-        }
-      }).catch(() => {});
+      // Option B: NO proactive GET_FULL_SCRIPT_CONFIG round-trip here. The
+      // client-visible config (which includes the `theme` block — it is NOT
+      // server-only) is pushed by dirk_lib via UPDATE_SCRIPT_CONFIG and lands
+      // in the store. The store `subscribe` above updates `scTheme` the moment
+      // that push arrives, and the seed `setScTheme(...)` from the current
+      // store state covers the case where the push beat this mount. This drops
+      // the per-mount full-config fetch entirely — reopen/reload = store hit,
+      // 0 bytes. The cold-start NUI-readiness race is handled on the Lua side
+      // (the push is (re)sent once the NUI signals NUI_READY).
     } catch {
       // No scriptConfig instance — consumer doesn't use scriptConfig at all.
       // Fall through silently; global theme behaviour is unchanged.

@@ -641,14 +641,28 @@ function cloneConfig<T>(value: T): T {
 }
 
 // ── ServerOnly Fetcher (merges x-serverOnly paths into form on admin open) ───
-
+//
+// Option B. The client-visible config is ALREADY in the store — pushed by
+// dirk_lib via UPDATE_SCRIPT_CONFIG and used to seed this FormProvider's
+// initialValues (see ConfigPanel below). On open we fetch ONLY the server-only
+// sliver (GET_SERVER_ONLY_SCRIPT_CONFIG, permission-gated server-side) and
+// DEEP-MERGE it onto that cached client-visible baseline — never re-fetching
+// the whole config. The merged full config (client-visible + server-only)
+// becomes the editor's working set so the admin can see and SAVE every field.
+// An empty sliver ({}) is a valid no-op merge (schema has no x-serverOnly
+// paths) and the form keeps its client-visible baseline. The sliver is
+// admin-only and in-memory only — fetchServerOnly never persists it to KVP.
 function ServerOnlyFetcher<T extends Record<string, any>>() {
-  const { fetchConfig } = getScriptConfigInstance<T>();
+  const { fetchServerOnly } = getScriptConfigInstance<T>();
   const { reinitialize } = useFormActions<T>();
 
   useEffect(() => {
     let cancelled = false;
-    fetchConfig().then((full) => {
+    fetchServerOnly().then((full) => {
+      // `full` is the deep-merged client-visible baseline + server-only sliver.
+      // On failure (non-admin / not ready) fetchServerOnly returns null and we
+      // leave the form on its client-visible baseline (already seeded from the
+      // store) rather than wiping it.
       if (!cancelled && full) reinitialize(full as Partial<T>);
     }).catch(() => {});
     return () => { cancelled = true; };

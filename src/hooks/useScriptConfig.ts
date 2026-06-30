@@ -55,6 +55,46 @@ type NuiResponse<T> = {
   meta?: ScriptConfigUpdateMeta<T>;
 };
 
+// Server-only "sliver" response (GET_SERVER_ONLY_SCRIPT_CONFIG). Identical
+// envelope to GET_FULL_SCRIPT_CONFIG — only the inner key differs (`serverOnly`
+// instead of `config`). `serverOnly` is the x-serverOnly subtree in the SAME
+// nested shape/paths as `config` (a deep object, NOT flat dot-paths); `{}` when
+// the schema declares no server-only fields.
+export type ServerOnlyScriptConfigResponse<T> = {
+  success: boolean;
+  _error?: string;
+  data?: { serverOnly: Partial<T>; clientVersion: number };
+};
+
+// Recursive deep-merge: returns a new object where `patch`'s plain-object
+// branches are merged INTO `base`'s, and non-object values (scalars, arrays)
+// from `patch` replace `base`. Used to top up the server-only sliver onto the
+// already-cached client-visible config WITHOUT the top-level spread-replace
+// `fetchScriptConfig` uses — a shallow spread would clobber sibling
+// client-visible keys that live under a shared parent section. By construction
+// the two views are disjoint (serverOnly is the set-complement of the
+// client-visible view), but we still deep-merge so a shared parent section keeps
+// both its client-visible and server-only children.
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function deepMerge<T>(base: T, patch: Partial<T>): T {
+  if (!isPlainObject(base) || !isPlainObject(patch)) {
+    // patch wins for non-object values (arrays/scalars are replaced wholesale).
+    return (patch as unknown as T) ?? base;
+  }
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const key of Object.keys(patch as Record<string, unknown>)) {
+    const patchVal = (patch as Record<string, unknown>)[key];
+    const baseVal = out[key];
+    out[key] = isPlainObject(baseVal) && isPlainObject(patchVal)
+      ? deepMerge(baseVal, patchVal as Record<string, unknown>)
+      : patchVal;
+  }
+  return out as T;
+}
+
 // Derive the set of changed TOP-LEVEL section keys from a useForm changed-set
 // of dotted paths (e.g. ["stores.0.name", "basic.weightUnit"] → {"stores","basic"}).
 // CONSERVATIVE by design: any changed path under section X marks the WHOLE
@@ -80,6 +120,11 @@ export interface ScriptConfigInstance<T = any> {
   resetConfig: () => Promise<{ success: boolean; _error?: string }>;
   getHistory: (params?: ScriptConfigHistoryRequest) => Promise<ScriptConfigHistoryResponse>;
   fetchConfig: () => Promise<T | null>;
+  // Admin-only top-up: fetches the server-only sliver and DEEP-MERGES it onto
+  // the already-cached client-visible store state. Returns the merged full
+  // config, or null on failure / no-permission. The sliver is in-memory only —
+  // it is NEVER persisted to KVP or any cache (KVP holds client-visible only).
+  fetchServerOnly: () => Promise<T | null>;
 }
 
 let _instance: ScriptConfigInstance | null = null;
@@ -135,6 +180,40 @@ export function createScriptConfig<T>(defaultValue: T) {
     return null;
   };
 
+  // Option B top-up. Called ONLY by the admin editor on panel open. The
+  // baseline (client-visible config) is already in the store — pushed by Lua
+  // via UPDATE_SCRIPT_CONFIG (handled in useScriptConfigHooks above) and cached
+  // in KVP on the Lua side. Here we fetch ONLY the server-only sliver
+  // (permission-gated server-side on canEditScript) and DEEP-MERGE it onto that
+  // baseline to form the full editor view. We deliberately do NOT spread-replace
+  // (as fetchScriptConfig does) — that would clobber sibling client-visible keys
+  // under a shared parent section.
+  //
+  // SECURITY: this sliver is admin-only and in-memory only. It is NEVER written
+  // to KVP or any cache; it is re-fetched fresh on every panel open.
+  const fetchServerOnlyScriptConfig = async (): Promise<T | null> => {
+    try {
+      const response = await fetchNui<ServerOnlyScriptConfigResponse<T>>(
+        "GET_SERVER_ONLY_SCRIPT_CONFIG"
+      );
+
+      if (response?.success && response.data) {
+        // clientVersion here matches the value already in the store from the
+        // Lua push; keep it in sync (safe no-op if identical).
+        if (typeof response.data.clientVersion === "number") {
+          clientVersion = response.data.clientVersion;
+        }
+        const sliver = response.data.serverOnly;
+        // An empty sliver ({} — schema declares no server-only paths) is a valid
+        // no-op merge: deepMerge returns the baseline unchanged.
+        const merged = deepMerge(store.getState() as T, (sliver ?? {}) as Partial<T>);
+        store.setState(() => merged as T);
+        return merged;
+      }
+    } catch { /* fall back to the client-visible baseline already in the store */ }
+    return null;
+  };
+
   // `changedFields` is the useForm tracked changed-set (dotted paths). When
   // supplied AND it resolves to ≥1 top-level section, we send a SECTION-DELTA:
   // only the changed sections, each as its WHOLE current value, with
@@ -187,10 +266,14 @@ export function createScriptConfig<T>(defaultValue: T) {
   const resetConfig = async (): Promise<{ success: boolean; _error?: string }> => {
     const response = await fetchNui<{ success: boolean; _error?: string }>('RESET_SCRIPT_CONFIG');
     if (response?.success) {
-      const fresh = await fetchScriptConfig();
-      if (fresh) {
-        store.setState(() => fresh);
-      }
+      // Option B: after a reset the server restores defaults and broadcasts a
+      // fresh client-visible UPDATE_SCRIPT_CONFIG push (handled in
+      // useScriptConfigHooks → store baseline). We only need to re-merge the
+      // server-only sliver onto that refreshed baseline to rebuild the full
+      // editor view — no GET_FULL_SCRIPT_CONFIG round-trip. fetchServerOnly
+      // merges onto whatever client-visible baseline is currently in the store,
+      // so it's safe regardless of broadcast/callback ordering.
+      await fetchServerOnlyScriptConfig();
     }
     return response;
   };
@@ -201,7 +284,8 @@ export function createScriptConfig<T>(defaultValue: T) {
     resetConfig,
     getHistory: getScriptConfigHistory,
     fetchConfig: fetchScriptConfig,
+    fetchServerOnly: fetchServerOnlyScriptConfig,
   };
 
-  return {store, updateScriptConfig, resetConfig, getScriptConfigHistory, useScriptConfigHooks, fetchScriptConfig}
+  return {store, updateScriptConfig, resetConfig, getScriptConfigHistory, useScriptConfigHooks, fetchScriptConfig, fetchServerOnlyScriptConfig}
 }
