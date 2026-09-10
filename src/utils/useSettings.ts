@@ -19,6 +19,14 @@ export type SettingsState = {
   // framework/inventory without its own fetch.
   framework?: string;   // 'qb-core' | 'qbx_core' | 'es_extended' | ...
   inventory?: string;   // 'ox_inventory' | 'qb-inventory' | 'codem-inventory' | ...
+
+  // Display units, owned by dirk_lib for the same reason `currency` is: a
+  // server that runs in kilograms wants every dirk script to say kilograms,
+  // and correcting that per script means correcting it forever. Optional
+  // because an older dirk_lib does not send them -- fall back rather than
+  // assume (`weightUnit ?? 'lb'`).
+  weightUnit?: "kg" | "lb";
+  distanceUnit?: "m" | "ft";
 };
 
 export const useSettings = create<SettingsState>(() => ({
@@ -29,6 +37,11 @@ export const useSettings = create<SettingsState>(() => ({
   itemImgPath: "",
   resourceVersion: "dev",
   customTheme: DEFAULT_PALETTE as unknown as MantineColorsTuple,
+  // Match dirk_lib's own schema defaults, so a consumer rendering before
+  // GET_SETTINGS resolves shows the same units it will show a moment later
+  // rather than flickering from one to the other.
+  weightUnit: "lb",
+  distanceUnit: "m",
 }));
 
 // registerInitialFetch<Partial<SettingsState>>('GET_SETTINGS', undefined).then((data) => {
