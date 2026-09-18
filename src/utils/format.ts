@@ -74,19 +74,46 @@ export const distanceUnit = (): "m" | "ft" => useSettings.getState().distanceUni
 export type NumberFormatOptions = {
   /** Most decimal places to show. Default 0. */
   decimals?: number;
-  /** Short form: 1.2K, 2.9M. */
+  /** Short form for stat tiles: 684.2k, 12k, 1.3M, 12M. */
   compact?: boolean;
 };
+
+/** Exactly `digits` decimals, grouped and punctuated for the server's language. */
+function fixed(n: number, digits: number): string {
+  return numberFormat({ minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
+}
+
+/**
+ * The compact form, on dirk_fishing's rules rather than the browser's.
+ *
+ * Intl's own compact notation writes "684.2K" with a capital K and picks its
+ * own decimals, which would have quietly changed every stat tile fishing
+ * already ships. These are fishing's rules exactly: one decimal below ten
+ * thousand / ten million, none above, lowercase k, capital M.
+ *
+ *   999 -> 999   1000 -> 1.0k   684200 -> 684.2k   12345 -> 12k
+ *   1280000 -> 1.3M   12000000 -> 12M
+ */
+function compactNumber(n: number): string {
+  // Proven against fishing's original fmtStat pulled from git: no grouping
+  // inside the short form (999,999 is "1000k", not "1,000k"), negatives and
+  // anything under a thousand written exactly as they are.
+  if (n >= 1_000_000) return plain(n / 1_000_000, n >= 10_000_000 ? 0 : 1) + "M";
+  if (n >= 1_000) return plain(n / 1_000, n >= 10_000 ? 0 : 1) + "k";
+  return String(n);
+}
+
+/** Exactly `digits` decimals, no thousands grouping -- for the short form. */
+function plain(n: number, digits: number): string {
+  return numberFormat({ minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false }).format(n);
+}
 
 /** A plain number, grouped for the server's language. */
 export function formatNumber(value: number | null | undefined, options: NumberFormatOptions = {}): string {
   const n = Number(value) || 0;
   const { decimals = 0, compact = false } = options;
-  return numberFormat(
-    compact
-      ? { notation: "compact", maximumFractionDigits: 1 }
-      : { maximumFractionDigits: decimals, minimumFractionDigits: 0 },
-  ).format(n);
+  if (compact) return compactNumber(n);
+  return numberFormat({ maximumFractionDigits: decimals, minimumFractionDigits: 0 }).format(n);
 }
 
 // ── money ───────────────────────────────────────────────────────────────────
@@ -144,8 +171,27 @@ const GRAMS_PER_LB = 453.59;
  * ("1.20kg"). These are dirk_fishing's rules, which shipped first and read
  * well; every script now gets the same ones.
  */
-export function formatWeight(grams: number | null | undefined): string {
+export type WeightFormatOptions = {
+  /**
+   * For stat tiles and totals: one decimal, and tonnes past 1,000 kg (or tons
+   * past 2,000 lb) -- "8.8kg", "2.5t", "19.3lb", "1.4tn". A server-wide total
+   * written out in kilos is unreadable.
+   */
+  compact?: boolean;
+};
+
+const LB_PER_SHORT_TON = 2000;
+
+export function formatWeight(grams: number | null | undefined, options: WeightFormatOptions = {}): string {
   const g = Number(grams) || 0;
+  if (options.compact) {
+    if (weightUnit() === "lb") {
+      const lb = g / GRAMS_PER_LB;
+      return lb >= LB_PER_SHORT_TON ? `${fixed(lb / LB_PER_SHORT_TON, 1)}tn` : `${fixed(lb, 1)}lb`;
+    }
+    const kg = g / 1000;
+    return kg >= 1000 ? `${fixed(kg / 1000, 1)}t` : `${fixed(kg, 1)}kg`;
+  }
   if (weightUnit() === "lb") {
     const lb = g / GRAMS_PER_LB;
     return lb < 1 ? `${(lb * 16).toFixed(1)}oz` : `${lb.toFixed(2)}lb`;
