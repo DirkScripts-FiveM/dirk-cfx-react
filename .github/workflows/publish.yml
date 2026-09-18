@@ -11,8 +11,10 @@ name: Publish to npm
 #     on main without errors).
 #   - If it does not → install, build, publish.
 #
-# Requires the repo secret `NPM_TOKEN` (a npm automation token with
-# publish rights to the dirk-cfx-react package).
+# Auth: npm Trusted Publishing (OIDC) -- the package trusts this repo +
+# workflow on npmjs.com, so no token is needed and nothing expires. The
+# NPM_TOKEN secret stays as a fallback until the trust is configured; npm
+# prefers OIDC whenever it is available.
 
 on:
   push:
@@ -22,6 +24,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # OIDC for trusted publishing
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +41,9 @@ jobs:
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
+
+      - name: npm with trusted publishing (11.5.1+)
+        run: npm install -g npm@^11.5.1
 
       - name: Read package version
         id: pkg
